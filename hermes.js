@@ -136,8 +136,6 @@ server_update(server_uuid, dcname)
 function
 logfile_lookup(server, zonename, logpath)
 {
-	var lf;
-
 	for (var i = 0; i < server.s_logfiles.length; i++) {
 		var lf = server.s_logfiles[i];
 		if (lf.lf_zonename === zonename &&
@@ -360,7 +358,7 @@ worker_manta_upload(lf, next)
 			next(_err);
 		}
 
-		if (--waiting == 0) {
+		if (--waiting === 0) {
 			infl.complete();
 			next();
 		}
