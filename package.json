@@ -1,0 +1,19 @@
+{
+  "name": "hermes",
+  "version": "0.0.1",
+  "description": "Centralised tool to upload SDC logs to Manta",
+  "main": "hermes.js",
+  "author": "Joshua M. Clulow <jmc@joyent.com>",
+  "dependencies": {
+    "sdc-clients": "git+ssh://git@git.joyent.com:node-sdc-clients.git",
+    "manta": "~1.1.1",
+    "libuuid": "~0.1.2",
+    "vasync": "~1.4.0",
+    "amqp": "~0.1.7",
+    "bunyan": "~0.21.4",
+    "restify": "~2.6.0",
+    "assert-plus": "~0.1.4",
+    "kang": "0.0.8",
+    "once": "~1.2.0"
+  }
+}

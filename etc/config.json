@@ -1,0 +1,11 @@
+{
+  "admin_ip": "10.101.50.22",
+  "sapi": {
+    "url": "http://sapi.sf1.sf1.joyent.com"
+  },
+  "rabbitmq": "guest:guest:10.101.50.13:5672",
+  "polling": {
+    "sysinfo": 60,
+    "discovery": 120
+  }
+}

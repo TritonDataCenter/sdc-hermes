@@ -1,0 +1,14 @@
+#!/bin/ksh
+
+set -o errexit
+
+DIR=$(dirname $(whence $0))
+
+#
+# Make sure we have the Manta environment from our SDC zone:
+#
+. "$HOME/.sdc_mantaprofile"
+
+${DIR}/bin/node --abort_on_uncaught_exception ${DIR}/hermes.js \
+  | ${DIR}/bin/node ${DIR}/node_modules/.bin/bunyan -o short
+
