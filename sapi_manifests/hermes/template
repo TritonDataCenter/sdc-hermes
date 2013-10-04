@@ -1,0 +1,11 @@
+{
+  "admin_ip": "{{{ADMIN_IP}}}",
+  "sapi": {
+    "url": "http://{{{sapi_domain}}}"
+  },
+  "rabbitmq": "{{{rabbitmq}}}",
+  "polling": {
+    "sysinfo": 60,
+    "discovery": 120
+  }
+}
