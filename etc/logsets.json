@@ -12,8 +12,13 @@
   {
     "name": "sdc_zone_logs",
     "search_dirs": [ "/var/log/sdc/upload" ],
-    "regex": "^/var/log/sdc/upload/([a-zA-Z]+)_([0-9a-f]+)_([0-9]+)-([0-9]+)-([0-9]+)T([0-9]+):..:..\.log$",
-    "manta_path": "/%u/stor/logs/%d/$1/$3/$4/$5/$6/$2.log",
+    "regex": "^/var/log/sdc/upload/([a-zA-Z]+)_([0-9a-f-]+)_([0-9]+)-([0-9]+)-([0-9]+)T([0-9]+):..:..\\.log$",
+    "date_string": {
+      "y": "$3", "m": "$4", "d": "$5",
+      "H": "$6"
+    },
+    "date_adjustment": "-1H",
+    "manta_path": "/%u/stor/logs/%d/$1/#y/#m/#d/#H/$2.log",
     "debounce_time": 600,
     "zones": [
       "workflow",

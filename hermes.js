@@ -262,7 +262,7 @@ server_upload_worker(s)
 					s.s_worker_running = false;
 					setImmediate(function () {
 						server_upload_worker(s);
-					}, 1000);
+					});
 				}
 			});
 			/*
@@ -300,12 +300,14 @@ worker_check_manta(lf, next)
 				next();
 			return;
 		} 
+
 		/*
 		 * We found the log file in Manta already; mark it
 		 * uploaded:
 		 */
 		lf.lf_uploaded = true;
 		lf.lf_md5 = info.md5;
+
 		next();
 	});
 }
@@ -337,7 +339,8 @@ worker_manta_upload(lf, next)
 		lf.lf_zonename
 	];
 	var data = {
-		logfile: lf
+		logfile: lf,
+		barrier: mod_vasync.barrier()
 	};
 
 	var infl = URCONN.send_command(lf.lf_server.s_uuid, SCRIPTS.pushlog,
@@ -347,32 +350,23 @@ worker_manta_upload(lf, next)
 		return;
 	}
 
-	var waiting = 2;
-	var check_wait = function (_err) {
-		if (waiting === 0)
-			return;
+	var errors = [];
+	data.barrier.on('drain', function () {
+		infl.complete();
+		next(errors[0] || errors[1]);
+	});
+	data.barrier.start('command_reply');
+	data.barrier.start('http_put');
 
-		if (_err) {
-			waiting = 0;
-			infl.complete();
-			next(_err);
-		}
-
-		if (--waiting === 0) {
-			infl.complete();
-			next();
-		}
-	};
 	infl.once('command_reply', function (reply) {
 		LOG.debug({
 			reply: reply
 		}, 'push_log command reply');
 		if (reply.exit_status !== 0) {
-			check_wait(new Error('pushlog exited ' +
-			    reply.exit_status + ': ' + reply.stderr));
-		} else {
-			check_wait();
+			errors[1] = new Error('pushlog exited ' +
+			    reply.exit_status + ': ' + reply.stderr);
 		}
+		data.barrier.done('command_reply');
 	});
 	infl.once('http_put', function (req, res, _next) {
 		LOG.debug({
@@ -392,19 +386,23 @@ worker_manta_upload(lf, next)
 		};
 		MANTA.put(lf.lf_mantapath, req, opts, function (_err, _res) {
 			if (_err) {
-				check_wait(_err);
+				errors[0] = _err;
 				res.send(500);
-				_next();
 			} else {
+				/*
+				 * Mark the file as uploaded:
+				 */
+				lf.lf_uploaded = true;
 				lf.lf_md5 = req.headers['content-md5'];
+
 				LOG.info({
 					mantapath: lf.lf_mantapath,
 					md5: lf.lf_md5
 				}, 'uploaded ok');
-				check_wait();
 				res.send(200);
-				_next();
 			}
+			data.barrier.done('http_put');
+			_next();
 		});
 	});
 }
