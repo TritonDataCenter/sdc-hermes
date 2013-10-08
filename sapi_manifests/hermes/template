@@ -3,6 +3,9 @@
   "sapi": {
     "url": "http://{{{sapi_domain}}}"
   },
+  "vmapi": {
+    "url": "http://{{{vmapi_domain}}}"
+  },
   "rabbitmq": "{{{rabbitmq}}}",
   "polling": {
     "sysinfo": 60,

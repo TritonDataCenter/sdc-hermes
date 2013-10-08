@@ -58,7 +58,8 @@ URCONN.on('server_info', function (server_info) {
 	server_update(server_info.server, server_info.datacenter);
 });
 
-var ZONES = new mod_zones.ZoneList(LOG, CONFIG.sapi.url, "sdc");
+var ZONES = new mod_zones.ZoneList(LOG, CONFIG.sapi.url,
+    CONFIG.vmapi.url, "sdc");
 
 var PORT;
 var HTTPSERVER;
