@@ -23,68 +23,40 @@ var mod_httpserver = require('./lib/httpserver');
 var mod_mq = require('./lib/mq');
 var mod_zones = require('./lib/zones');
 
-var CONFIG = JSON.parse(mod_fs.readFileSync(mod_path.join(__dirname, 'etc',
-    'config.json'), 'utf8'));
+process.on('uncaughtException', function (err) {
+	LOG.fatal({ err: err }, 'UNCAUGHT EXCEPTION');
+	throw (err);
+});
 
+/*
+ * Globals:
+ */
 var LOG = mod_bunyan.createLogger({
 	name: 'hermes',
-	level: process.env.LOG_LEVEL || CONFIG.log_level || mod_bunyan.INFO,
+	level: process.env.LOG_LEVEL || mod_bunyan.INFO,
 	serializers: {
 		logfile: logfile_serialiser,
 		err: mod_bunyan.stdSerializers.err
 	}
 });
 
-process.on('uncaughtException', function (err) {
-	LOG.fatal({ err: err }, 'UNCAUGHT EXCEPTION');
-	throw (err);
-});
+var CONFIG;
 
 var KANG;
+
 var MANTA;
 var MANTA_USER;
 
-var INFLIGHTS = new mod_inflight.InflightRegister();
+var INFLIGHTS;
 
-var RABBIT_CONFIG = CONFIG.rabbitmq.split(':');
-var URCONN = new mod_mq.URConnection(LOG, INFLIGHTS, {
-	login: RABBIT_CONFIG[0],
-	password: RABBIT_CONFIG[1],
-	host: RABBIT_CONFIG[2],
-	port: RABBIT_CONFIG[3]
-});
-URCONN.on('server_info', function (server_info) {
-	LOG.info({
-		server_info: server_info
-	}, 'received server info');
-	server_update(server_info.server, server_info.datacenter);
-});
+var URCONN;
 
-var ZONES = new mod_zones.ZoneList(LOG, CONFIG.sapi.url,
-    CONFIG.vmapi.url, "sdc");
+var ZONES;
 
 var PORT;
 var HTTPSERVER;
 
-function
-logfile_serialiser(lf)
-{
-	return ({
-		server: lf.lf_server.s_uuid,
-		zonename: lf.lf_zonename,
-		zonerole: lf.lf_zonerole,
-		datacenter: lf.lf_server.s_datacenter,
-		local_path: lf.lf_logpath,
-		manta_path: lf.lf_mantapath,
-		uploaded: lf.lf_uploaded,
-		removed: lf.lf_removed,
-		generation: lf.lf_generation
-	});
-}
-
-
 var SCRIPTS = {};
-
 
 /*
  * Server and Logfile Management Functions:
@@ -175,8 +147,9 @@ logfile_update(s, logpath, zonename, zonerole)
 			lf_zonename: zonename,
 			lf_zonerole: zonerole,
 			lf_logpath: logpath,
-			lf_mantapath: mod_logsets.local_to_manta_path(MANTA_USER,
-			    logset, logpath, s.s_datacenter, zonename, s.s_uuid),
+			lf_mantapath: mod_logsets.local_to_manta_path(
+			    CONFIG.manta.user, logset, logpath, s.s_datacenter,
+			    zonename, s.s_uuid),
 			lf_uploaded: false,
 			lf_generation: s.s_generation,
 			lf_md5: null
@@ -524,37 +497,58 @@ send_sysinfo()
 /*
  * Various Utilities:
  */
+
+function
+logfile_serialiser(lf)
+{
+	return ({
+		server: lf.lf_server.s_uuid,
+		zonename: lf.lf_zonename,
+		zonerole: lf.lf_zonerole,
+		datacenter: lf.lf_server.s_datacenter,
+		local_path: lf.lf_logpath,
+		manta_path: lf.lf_mantapath,
+		uploaded: lf.lf_uploaded,
+		removed: lf.lf_removed,
+		generation: lf.lf_generation
+	});
+}
+
 function
 create_manta_client()
 {
-	var user = MANTA_USER = CONFIG.manta.user || process.env.MANTA_USER;
-	if (!user) {
-		throw (new Error('Please set MANTA_USER'));
-	}
-
-	var url = CONFIG.manta.url || process.env.MANTA_URL;
-	if (!url) {
-		throw (new Error('Please set MANTA_URL'));
-	}
-
-	var key_id = CONFIG.manta.key_id || process.env.MANTA_KEY_ID;
-	if (!key_id) {
-		throw (new Error('Please set MANTA_KEY_ID'));
-	}
+	mod_assert.ok(CONFIG.manta.user, 'MANTA_USER');
+	mod_assert.ok(CONFIG.manta.url, 'MANTA_URL');
+	mod_assert.ok(CONFIG.manta.keyId, 'MANTA_KEY_ID');
 
 	var key_file = '/root/.ssh/sdc.id_rsa';
 
 	var client = mod_manta.createClient({
 		sign: mod_manta.privateKeySigner({
 			key: mod_fs.readFileSync(key_file, 'utf8'),
-			keyId: key_id,
-			user: user
+			keyId: CONFIG.manta.keyId,
+			user: CONFIG.manta.user
 		}),
-		user: user,
-		url: url
+		user: CONFIG.manta.user,
+		url: CONFIG.manta.url
 	});
 
 	MANTA = client;
+}
+
+function
+create_urconn()
+{
+	var urconn = new mod_mq.URConnection(LOG, INFLIGHTS, CONFIG.rabbitmq);
+
+	urconn.on('server_info', function (server_info) {
+		LOG.info({
+			server_info: server_info
+		}, 'received server info');
+		server_update(server_info.server, server_info.datacenter);
+	});
+
+	return (urconn);
 }
 
 function
@@ -632,28 +626,143 @@ setup_kang()
 	});
 }
 
+function
+read_config()
+{
+	var cfg;
+	var path = mod_path.join(__dirname, 'etc', 'config.json');
+
+	try {
+		cfg = JSON.parse(mod_fs.readFileSync(path), 'utf8');
+
+		/*
+		 * Break up the RabbitMQ credentials string:
+		 */
+		var rabbit_cfg = cfg.rabbitmq.split(':');
+		cfg.rabbitmq = {
+			login: rabbit_cfg[0],
+			password: rabbit_cfg[1],
+			host: rabbit_cfg[2],
+			port: rabbit_cfg[3]
+		};
+
+		/*
+		 * Try and get Manta configuration from the environment
+		 * if it was not in the file:
+		 */
+		if (!cfg.manta)
+			cfg.manta = {};
+		if (!cfg.manta.user)
+			cfg.manta.user = process.env.MANTA_USER;
+		if (!cfg.manta.url)
+			cfg.manta.user = process.env.MANTA_URL;
+		if (!cfg.manta.keyId)
+			cfg.manta.user = process.env.MANTA_KEY_ID;
+
+		/*
+		 * Adjust Bunyan Log Level, if specified.
+		 */
+		LOG.level(process.env.LOG_LEVEL || cfg.log_level ||
+		    mod_bunyan.INFO);
+
+		/*
+		 * Validate the configuration before returning it:
+		 */
+		if (validate_config(cfg))
+			return (cfg);
+
+	} catch (err) {
+		LOG.error({
+			config_path: path,
+			err: err
+		}, 'could not read configuration file');
+	}
+
+	/*
+	 * Return whatever configuration (if any) exists already:
+	 */
+	return (CONFIG);
+}
+
+function
+validate_config(cfg)
+{
+	if (!cfg)
+		return (false);
+
+	if (!cfg.manta) {
+		LOG.warn('configuration missing "manta"');
+		return (false);
+	}
+
+	var manta_keys = [ 'user', 'url', 'keyId' ];
+	for (var i = 0; i < manta_keys.length; i++) {
+		if (!cfg.manta[manta_keys[i]]) {
+			LOG.warn('configuration missing "manta.' +
+			    manta_keys[i] + '"');
+			return (false);
+		}
+	}
+
+	return (true);
+}
+
 /*
  * Initialisation:
  */
-LOG.info('loading scripts');
-load_scripts();
-LOG.info({ scripts: Object.keys(SCRIPTS) }, 'scripts');
 
-LOG.info('creating manta client');
-create_manta_client();
+var EMIT_CONFIG_WARNING = true;
+function
+main()
+{
+	CONFIG = read_config();
 
-LOG.info('starting http server');
-mod_httpserver.create_http_server(MANTA, INFLIGHTS, CONFIG.admin_ip, LOG,
-    function (server) {
-	HTTPSERVER = server;
-	PORT = server.address().port;
-});
+	if (!CONFIG) {
+		if (EMIT_CONFIG_WARNING) {
+			LOG.warn('could not read configuration; sleeping...');
+			EMIT_CONFIG_WARNING = false;
+		}
+		setTimeout(main, 30 * 1000);
+		return;
+	} else {
+		LOG.info('configuration valid; starting...');
+	}
 
-setup_kang();
+	LOG.debug('loading scripts');
+	load_scripts();
+	LOG.info({ scripts: Object.keys(SCRIPTS) }, 'loaded scripts');
 
-setInterval(send_sysinfo, CONFIG.polling.sysinfo * 1000);
-setImmediate(send_sysinfo);
+	LOG.debug('starting inflight register');
+	INFLIGHTS = new mod_inflight.InflightRegister();
 
-setInterval(discover_logs_all, CONFIG.polling.discovery * 1000);
-setTimeout(discover_logs_all, 15 * 1000);
+	LOG.debug('creating manta client');
+	create_manta_client();
 
+	LOG.debug('starting http server');
+	mod_httpserver.create_http_server(MANTA, INFLIGHTS, CONFIG.admin_ip,
+	    LOG, function (server) {
+		HTTPSERVER = server;
+		PORT = server.address().port;
+	});
+
+	LOG.debug('starting ur connection');
+	URCONN = create_urconn();
+
+	LOG.debug('starting zone list');
+	ZONES = new mod_zones.ZoneList(LOG, CONFIG.sapi.url, CONFIG.vmapi.url,
+	    "sdc");
+
+	setup_kang();
+
+	/*
+	 * Start polling...
+	 */
+	LOG.info('start polling for servers and log files');
+	setInterval(send_sysinfo, CONFIG.polling.sysinfo * 1000);
+	setImmediate(send_sysinfo);
+
+	setInterval(discover_logs_all, CONFIG.polling.discovery * 1000);
+	setTimeout(discover_logs_all, 15 * 1000);
+}
+
+main();
