@@ -1,4 +1,5 @@
 {
   "name": "hermes",
-  "path": "/opt/smartdc/hermes/etc/config.json"
+  "path": "/opt/smartdc/hermes/etc/config.json",
+  "post_cmd": "/usr/sbin/svcadm restart hermes"
 }

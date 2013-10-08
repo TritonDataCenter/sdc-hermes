@@ -1,5 +1,6 @@
 {
   "admin_ip": "{{{ADMIN_IP}}}",
+  "log_level": "{{{HERMES_LOG_LEVEL}}}",
   "sapi": {
     "url": "http://{{{sapi_domain}}}"
   },
@@ -7,6 +8,11 @@
     "url": "http://{{{vmapi_domain}}}"
   },
   "rabbitmq": "{{{rabbitmq}}}",
+  "manta": {
+    "user": "{{{SDC_MANTA_USER}}}",
+    "url": "{{{SDC_MANTA_URL}}}",
+    "key_id": "{{{SDC_KEY_ID}}}"
+  },
   "polling": {
     "sysinfo": 60,
     "discovery": 120

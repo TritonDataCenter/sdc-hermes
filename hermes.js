@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /* vim: set syntax=javascript ts=8 sts=8 sw=8 noet: */
 
+var p = console.log;
 var mod_fs = require('fs');
 var mod_path = require('path');
 var mod_http = require('http');
@@ -22,9 +23,12 @@ var mod_httpserver = require('./lib/httpserver');
 var mod_mq = require('./lib/mq');
 var mod_zones = require('./lib/zones');
 
+var CONFIG = JSON.parse(mod_fs.readFileSync(mod_path.join(__dirname, 'etc',
+    'config.json'), 'utf8'));
+
 var LOG = mod_bunyan.createLogger({
-	name: 'uplog',
-	level: process.env.LOG_LEVEL || mod_bunyan.INFO,
+	name: 'hermes',
+	level: process.env.LOG_LEVEL || CONFIG.log_level || mod_bunyan.INFO,
 	serializers: {
 		logfile: logfile_serialiser,
 		err: mod_bunyan.stdSerializers.err
@@ -36,11 +40,9 @@ process.on('uncaughtException', function (err) {
 	throw (err);
 });
 
-var CONFIG = JSON.parse(mod_fs.readFileSync(mod_path.join(__dirname, 'etc',
-    'config.json'), 'utf8'));
-
 var KANG;
 var MANTA;
+var MANTA_USER;
 
 var INFLIGHTS = new mod_inflight.InflightRegister();
 
@@ -173,8 +175,8 @@ logfile_update(s, logpath, zonename, zonerole)
 			lf_zonename: zonename,
 			lf_zonerole: zonerole,
 			lf_logpath: logpath,
-			lf_mantapath: mod_logsets.local_to_manta_path(logset,
-			    logpath, s.s_datacenter, zonename, s.s_uuid),
+			lf_mantapath: mod_logsets.local_to_manta_path(MANTA_USER,
+			    logset, logpath, s.s_datacenter, zonename, s.s_uuid),
 			lf_uploaded: false,
 			lf_generation: s.s_generation,
 			lf_md5: null
@@ -525,30 +527,30 @@ send_sysinfo()
 function
 create_manta_client()
 {
-	MANTA_USER = process.env.MANTA_USER;
-	if (!MANTA_USER) {
+	var user = MANTA_USER = CONFIG.manta.user || process.env.MANTA_USER;
+	if (!user) {
 		throw (new Error('Please set MANTA_USER'));
 	}
 
-	var url = process.env.MANTA_URL;
+	var url = CONFIG.manta.url || process.env.MANTA_URL;
 	if (!url) {
 		throw (new Error('Please set MANTA_URL'));
 	}
 
-	var key_id = process.env.MANTA_KEY_ID;
+	var key_id = CONFIG.manta.key_id || process.env.MANTA_KEY_ID;
 	if (!key_id) {
 		throw (new Error('Please set MANTA_KEY_ID'));
 	}
 
-	var key_file = mod_path.join(process.env.HOME, '.ssh', 'sdc.id_rsa');
+	var key_file = '/root/.ssh/sdc.id_rsa';
 
 	var client = mod_manta.createClient({
 		sign: mod_manta.privateKeySigner({
 			key: mod_fs.readFileSync(key_file, 'utf8'),
 			keyId: key_id,
-			user: MANTA_USER
+			user: user
 		}),
-		user: MANTA_USER,
+		user: user,
 		url: url
 	});
 
@@ -616,7 +618,7 @@ setup_kang()
 		uri_base: '/kang',
 		port: 8492,
 		version: '0.0.0',
-		service_name: 'uplog_kang',
+		service_name: 'hermes_kang',
 		ident: mod_os.hostname(),
 		list_types: list_types,
 		list_objects: list_objects,

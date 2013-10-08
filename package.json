@@ -4,6 +4,7 @@
   "description": "Centralised tool to upload SDC logs to Manta",
   "main": "hermes.js",
   "author": "Joshua M. Clulow <jmc@joyent.com>",
+  "private": true,
   "dependencies": {
     "sdc-clients": "git+ssh://git@git.joyent.com:node-sdc-clients.git",
     "manta": "~1.1.1",
