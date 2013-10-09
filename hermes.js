@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 /* vim: set syntax=javascript ts=8 sts=8 sw=8 noet: */
 
-var p = console.log;
 var mod_fs = require('fs');
 var mod_path = require('path');
 var mod_http = require('http');
@@ -519,14 +518,14 @@ create_manta_client()
 {
 	mod_assert.ok(CONFIG.manta.user, 'MANTA_USER');
 	mod_assert.ok(CONFIG.manta.url, 'MANTA_URL');
-	mod_assert.ok(CONFIG.manta.keyId, 'MANTA_KEY_ID');
+	mod_assert.ok(CONFIG.manta.key_id, 'MANTA_KEY_ID');
 
 	var key_file = '/root/.ssh/sdc.id_rsa';
 
 	var client = mod_manta.createClient({
 		sign: mod_manta.privateKeySigner({
 			key: mod_fs.readFileSync(key_file, 'utf8'),
-			keyId: CONFIG.manta.keyId,
+			keyId: CONFIG.manta.key_id,
 			user: CONFIG.manta.user
 		}),
 		user: CONFIG.manta.user,
@@ -656,7 +655,7 @@ read_config()
 			cfg.manta.user = process.env.MANTA_USER;
 		if (!cfg.manta.url)
 			cfg.manta.user = process.env.MANTA_URL;
-		if (!cfg.manta.keyId)
+		if (!cfg.manta.key_id)
 			cfg.manta.user = process.env.MANTA_KEY_ID;
 
 		/*
@@ -695,7 +694,7 @@ validate_config(cfg)
 		return (false);
 	}
 
-	var manta_keys = [ 'user', 'url', 'keyId' ];
+	var manta_keys = [ 'user', 'url', 'key_id' ];
 	for (var i = 0; i < manta_keys.length; i++) {
 		if (!cfg.manta[manta_keys[i]]) {
 			LOG.warn('configuration missing "manta.' +
