@@ -176,6 +176,8 @@ logfile_update(s, logpath, zonename, zonerole)
 			    CONFIG.manta.user, logset, logpath, s.s_datacenter,
 			    zonename, s.s_uuid),
 			lf_uploaded: false,
+			lf_removed: false,
+			lf_ignore_until: null,
 			lf_generation: s.s_generation,
 			lf_md5: null
 		};
@@ -231,47 +233,78 @@ server_upload_worker(s)
 		return;
 	s.s_worker_running = true;
 
+	var lf;
+	var now = Math.floor(Date.now() / 1000);
+	var until = null;
+
+	function reschedule(time) {
+		setTimeout(function () {
+			server_upload_worker(s);
+		}, time * 1000);
+	}
+
+	function pl_callback(err) {
+		if (err) {
+			LOG.error({
+				err: err,
+				logfile: lf
+			}, 'logfile upload error');
+
+			/*
+			 * Delay further attempts to process this log file for
+			 * 2 minutes:
+			 */
+			lf.lf_ignore_until = now + 120;
+
+			s.s_worker_running = false;
+			reschedule(0);
+		} else {
+			LOG.debug({
+				logfile: lf
+			}, 'logfile finished processing');
+
+			s.s_worker_running = false;
+			reschedule(0);
+		}
+	}
+
 	/*
 	 * Upload the first log file that isn't uploaded:
 	 */
 	for (var i = 0; i < s.s_logfiles.length; i++) {
-		var lf = s.s_logfiles[i];
+		lf = s.s_logfiles[i];
 
-		if (!lf.lf_uploaded || !lf.lf_removed) {
-			var pl = mod_vasync.pipeline({
-				funcs: [
-					worker_check_manta,
-					worker_manta_mkdirp,
-					worker_manta_upload,
-					worker_remove_log
-				],
-				arg: lf
-			}, function (err) {
-				if (err) {
-					LOG.error({
-						err: err,
-						logfile: lf
-					}, 'logfile upload error');
-					s.s_worker_running = false;
-					setTimeout(function () {
-						server_upload_worker(s);
-					}, 1000);
-				} else {
-					LOG.debug({
-						logfile: lf
-					}, 'logfile finished processing');
-					s.s_worker_running = false;
-					setImmediate(function () {
-						server_upload_worker(s);
-					});
-				}
-			});
+		if (lf.lf_ignore_until && now < lf.lf_ignore_until) {
 			/*
-			 * Return now; we'll be rescheduled when the pipeline
-			 * completes.
+			 * Skip this log file for now.
 			 */
-			return;
+			until = (until === null) ? lf.lf_ignore_until :
+			    Math.min(lf.lf_ignore_until, until);
+			continue;
 		}
+		lf.lf_ignore_until = null;
+
+		/*
+		 * If there is no work to do on this log file, then skip it:
+		 */
+		if (lf.lf_uploaded && lf.lf_removed)
+			continue;
+
+		var pl = mod_vasync.pipeline({
+			funcs: [
+				worker_check_manta,
+				worker_manta_mkdirp,
+				worker_manta_upload,
+				worker_remove_log
+			],
+			arg: lf
+		}, pl_callback);
+
+		/*
+		 * Return now; we'll be rescheduled when the pipeline
+		 * completes.
+		 */
+		return;
 	}
 
 	/*
@@ -279,6 +312,16 @@ server_upload_worker(s)
 	 * to sleep...
 	 */
 	s.s_worker_running = false;
+
+	/*
+	 * If we did not run, but are ignoring at least one log file for a
+	 * delay period, then reschedule ourselves to run when that period
+	 * expires:
+	 */
+	if (until !== null) {
+		var delay = (until + 1) - Math.floor(Date.now() / 1000);
+		reschedule(delay > 0 ? delay : 0);
+	}
 }
 
 function
