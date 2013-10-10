@@ -141,6 +141,32 @@ logfile_update(s, logpath, zonename, zonerole)
 	 * If it does not, then add it:
 	 */
 	if (!lf) {
+		var parsed_date = mod_logsets.parse_date(logset, logpath);
+
+		if (parsed_date) {
+			/*
+			 * We know how to parse the rotation time for this log
+			 * file.  mtime was already debounced in the enumlogs
+			 * script, but we must also debounce on the filename
+			 * timestamp here.
+			 */
+			var now = Math.floor(Date.now() / 1000);
+			var filetime = Math.floor(parsed_date.valueOf() / 1000);
+			var age = now - filetime;
+
+			if (age < logset.debounce_time) {
+				LOG.debug({
+					server: s.s_uuid,
+					zonename: zonename,
+					logpath: logpath,
+					parsed_date: parsed_date,
+					age: age,
+					logset: logset
+				}, 'log filename timestamp too recent');
+				return;
+			}
+		}
+
 		lf = {
 			lf_server: s,
 			lf_zonename: zonename,
