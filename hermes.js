@@ -546,7 +546,7 @@ discover_logs_all()
 	for (var i = 0; i < SERVERS.length; i++) {
 		var s = SERVERS[i];
 
-		LOG.info({
+		LOG.debug({
 			server: s.s_uuid
 		}, 'send discovery');
 		discover_logs_one(s);
@@ -610,7 +610,7 @@ create_urconn()
 	var urconn = new mod_mq.URConnection(LOG, INFLIGHTS, CONFIG.rabbitmq);
 
 	urconn.on('server_info', function (server_info) {
-		LOG.info({
+		LOG.debug({
 			server_info: server_info
 		}, 'received server info');
 		server_update(server_info.server, server_info.datacenter);
