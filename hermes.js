@@ -425,6 +425,13 @@ worker_manta_upload(lf, next)
 		return;
 	}
 
+	/*
+	 * Wait for 30 seconds after we send the request to execute pushlog
+	 * to see if it sends us a HTTP request.  If not, the remote agent
+	 * may not have been listening and we'll need to retry.
+	 */
+	infl.start_timeout(30 * 1000);
+
 	var errors = [];
 	data.barrier.on('drain', function () {
 		infl.complete();
@@ -433,6 +440,16 @@ worker_manta_upload(lf, next)
 	data.barrier.start('command_reply');
 	data.barrier.start('http_put');
 
+	infl.once('timeout', function () {
+		/*
+		 * We've timed out, so abandon this request:
+		 */
+		data.barrer.removeAllListeners('drain');
+		infl.removeAllListeners('command_reply');
+		infl.removeAllListeners('http_put');
+		infl.complete();
+		next(new Error('push_log command timed out'));
+	});
 	infl.once('command_reply', function (reply) {
 		LOG.debug({
 			reply: reply
@@ -444,6 +461,12 @@ worker_manta_upload(lf, next)
 		data.barrier.done('command_reply');
 	});
 	infl.once('http_put', function (req, res, _next) {
+		/*
+		 * The pushlog script is running on the remote host, so
+		 * we can stop the timeout for now:
+		 */
+		infl.cancel_timeout();
+
 		LOG.debug({
 			remoteAddress: req.socket.remoteAddress,
 			remotePort: req.socket.remotePort,
@@ -476,6 +499,15 @@ worker_manta_upload(lf, next)
 				}, 'uploaded ok');
 				res.send(200);
 			}
+
+			/*
+			 * The HTTP request from pushlog is over, but
+			 * we may still not receive the completion message
+			 * from the remote server.  Start the timeout clock
+			 * again.
+			 */
+			infl.start_timeout(30 * 1000);
+
 			data.barrier.done('http_put');
 			_next();
 		});
@@ -506,6 +538,14 @@ worker_remove_log(lf, next)
 		return;
 	}
 
+	infl.start_timeout(30 * 1000);
+
+	infl.once('timeout', function () {
+		infl.removeAllListeners('command_reply');
+		infl.complete();
+
+		next(new Error('removelog command timed out'));
+	});
 	infl.once('command_reply', function (reply) {
 		infl.complete();
 
@@ -542,6 +582,20 @@ discover_logs_one(server)
 		return;
 	}
 
+	/*
+	 * Wait for 85% of the discovery period to pass before
+	 * timing out a request:
+	 */
+	var window = Math.floor(CONFIG.polling.discovery * 0.85);
+	infl.start_timeout(window * 1000);
+
+	infl.once('timeout', function () {
+		infl.complete();
+		LOG.debug({
+			server: server.s_uuid,
+			inflight_id: infl.id()
+		}, 'discover logs timed out');
+	});
 	infl.once('command_reply', function (reply) {
 		infl.complete();
 
