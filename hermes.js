@@ -55,6 +55,8 @@ var ZONES;
 var PORT;
 var HTTPSERVER;
 
+var CNAPI;
+
 var SCRIPTS = {};
 
 /*
@@ -105,6 +107,35 @@ server_update(server_uuid, dcname)
 	}
 
 	return (s);
+}
+
+function
+cnapi_poll()
+{
+	CNAPI.listServers(function (err, res) {
+		if (err) {
+			LOG.error({
+				err: err
+			}, 'could not fetch servers from CNAPI');
+			return;
+		}
+
+		for (var i = 0; i < res.length; i++) {
+			var server = res[i];
+
+			if (!server.setup)
+				continue;
+
+			if (!server.datacenter || !server.datacenter.trim()) {
+				LOG.warn({
+					server: server.uuid
+				}, 'server has no "datacenter" in CNAPI');
+				continue;
+			}
+
+			server_update(server.uuid, server.datacenter);
+		}
+	});
 }
 
 function
@@ -609,14 +640,19 @@ create_urconn()
 {
 	var urconn = new mod_mq.URConnection(LOG, INFLIGHTS, CONFIG.rabbitmq);
 
-	urconn.on('server_info', function (server_info) {
-		LOG.debug({
-			server_info: server_info
-		}, 'received server info');
-		server_update(server_info.server, server_info.datacenter);
-	});
-
 	return (urconn);
+}
+
+function
+create_cnapi_client()
+{
+	mod_assert.ok(CONFIG.cnapi, 'config.cnapi');
+	mod_assert.ok(CONFIG.cnapi.url, 'config.cnapi.url');
+
+	CNAPI = new mod_sdc.CNAPI({
+		log: LOG,
+		url: CONFIG.cnapi.url
+	});
 }
 
 function
@@ -806,6 +842,9 @@ main()
 	LOG.debug('creating manta client');
 	create_manta_client();
 
+	LOG.debug('creating CNAPI client');
+	create_cnapi_client();
+
 	LOG.debug('starting http server');
 	mod_httpserver.create_http_server(MANTA, INFLIGHTS, CONFIG.admin_ip,
 	    LOG, function (server) {
@@ -826,8 +865,8 @@ main()
 	 * Start polling...
 	 */
 	LOG.info('start polling for servers and log files');
-	setInterval(send_sysinfo, CONFIG.polling.sysinfo * 1000);
-	setImmediate(send_sysinfo);
+	setInterval(cnapi_poll, CONFIG.polling.sysinfo * 1000);
+	setImmediate(cnapi_poll);
 
 	setInterval(discover_logs_all, CONFIG.polling.discovery * 1000);
 	setTimeout(discover_logs_all, 15 * 1000);

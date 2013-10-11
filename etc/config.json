@@ -3,6 +3,17 @@
   "sapi": {
     "url": "http://sapi.sf1.sf1.joyent.com"
   },
+  "vmapi": {
+    "url": "http://vmapi.sf1.sf1.joyent.com"
+  },
+  "cnapi": {
+    "url": "http://cnapi.sf1.sf1.joyent.com"
+  },
+  "manta": {
+    "url": "https://us-east.manta.joyent.com",
+    "user": "manta_username",
+    "key_id": "xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx"
+  },
   "rabbitmq": "guest:guest:10.101.50.13:5672",
   "polling": {
     "sysinfo": 60,

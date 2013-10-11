@@ -7,6 +7,9 @@
   "vmapi": {
     "url": "http://{{{vmapi_domain}}}"
   },
+  "cnapi": {
+    "url": "http://{{{cnapi_domain}}}"
+  },
   "rabbitmq": "{{{rabbitmq}}}",
   "manta": {
     "user": "{{{SDC_MANTA_USER}}}",
