@@ -692,7 +692,10 @@ create_manta_client()
 function
 create_urconn()
 {
-	var urconn = new mod_mq.URConnection(LOG, INFLIGHTS, CONFIG.rabbitmq);
+	var log = LOG.child({
+		component: 'URConnection'
+	});
+	var urconn = new mod_mq.URConnection(log, INFLIGHTS, CONFIG.rabbitmq);
 
 	return (urconn);
 }
@@ -703,8 +706,11 @@ create_cnapi_client()
 	mod_assert.ok(CONFIG.cnapi, 'config.cnapi');
 	mod_assert.ok(CONFIG.cnapi.url, 'config.cnapi.url');
 
+	var log = LOG.child({
+		component: 'CNAPI'
+	});
 	CNAPI = new mod_sdc.CNAPI({
-		log: LOG,
+		log: log,
 		url: CONFIG.cnapi.url
 	});
 }
@@ -910,8 +916,9 @@ main()
 	URCONN = create_urconn();
 
 	LOG.debug('starting zone list');
-	ZONES = new mod_zones.ZoneList(LOG, CONFIG.sapi.url, CONFIG.vmapi.url,
-	    "sdc");
+	ZONES = new mod_zones.ZoneList(LOG.child({
+		component: 'ZoneList'
+	}), CONFIG.sapi.url, CONFIG.vmapi.url, "sdc");
 
 	setup_kang();
 
