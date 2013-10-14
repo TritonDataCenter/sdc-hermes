@@ -663,7 +663,8 @@ logfile_serialiser(lf)
 		manta_path: lf.lf_mantapath,
 		uploaded: lf.lf_uploaded,
 		removed: lf.lf_removed,
-		generation: lf.lf_generation
+		generation: lf.lf_generation,
+		ignore_until: lf.lf_ignore_until
 	});
 }
 
@@ -764,7 +765,8 @@ setup_kang()
 			return ({
 				uuid: s.s_uuid,
 				outstanding: s.s_logfiles.map(
-				    logfile_serialiser)
+				    logfile_serialiser),
+				zones: ZONES.get_zones_for_server(s.s_uuid)
 			});
 		default:
 			throw (new Error('kang: ' + id + ' of ' + type +
