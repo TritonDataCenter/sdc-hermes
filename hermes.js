@@ -415,7 +415,11 @@ worker_manta_upload(lf, next)
 	];
 	var data = {
 		logfile: lf,
-		barrier: mod_vasync.barrier()
+		barrier: mod_vasync.barrier(),
+		toString: function () {
+			return ('worker_manta_upload (server ' +
+			    lf.lf_server.s_uuid + ')');
+		}
 	};
 
 	var infl = URCONN.send_command(lf.lf_server.s_uuid, SCRIPTS.pushlog,
@@ -531,8 +535,15 @@ worker_remove_log(lf, next)
 		lf.lf_zonename
 	];
 
+	var data = {
+		toString: function () {
+			return ('worker_remove_log (server ' +
+			    lf.lf_server.s_uuid + ')');
+		}
+	};
+
 	var infl = URCONN.send_command(lf.lf_server.s_uuid, SCRIPTS.removelog,
-	    args, {});
+	    args, data);
 	if (!infl) {
 		next(new Error('URCONN could not send command at this time'));
 		return;
@@ -576,11 +587,25 @@ discover_logs_one(server)
 	var script = SCRIPTS.enumlog.replace(/%%LOGSETS%%/,
 	    mod_logsets.format_logsets_for_discovery(zones));
 
-	var infl = URCONN.send_command(server.s_uuid, script, [], {});
+	var data = {
+		toString: function () {
+			return ('discover_logs_one (server ' +
+			    server.s_uuid + ')');
+		}
+	};
+
+	var infl = URCONN.send_command(server.s_uuid, script, [], data);
 	if (!infl) {
 		LOG.warn('URCONN.send_command() returned false');
 		return;
 	}
+
+	var log = LOG.child({
+		inflight_id: infl.id(),
+		server: server.s_uuid
+	});
+
+	log.debug('discovery sent');
 
 	/*
 	 * Wait for 85% of the discovery period to pass before
@@ -591,16 +616,13 @@ discover_logs_one(server)
 
 	infl.once('timeout', function () {
 		infl.complete();
-		LOG.debug({
-			server: server.s_uuid,
-			inflight_id: infl.id()
-		}, 'discover logs timed out');
+		log.debug('discover logs timed out');
 	});
 	infl.once('command_reply', function (reply) {
 		infl.complete();
 
 		if (reply.exit_status !== 0) {
-			LOG.error({
+			log.error({
 				stderr: reply.stderr
 			}, 'log discovery command did not exit 0');
 			return;
@@ -610,7 +632,7 @@ discover_logs_one(server)
 		try {
 			obj = JSON.parse(reply.stdout);
 		} catch (_err) {
-			LOG.error({
+			log.error({
 				err: _err
 			}, 'could not parse JSON from log discovery');
 			return;
@@ -665,6 +687,20 @@ logfile_serialiser(lf)
 		removed: lf.lf_removed,
 		generation: lf.lf_generation,
 		ignore_until: lf.lf_ignore_until
+	});
+}
+
+function
+server_serialiser(s)
+{
+	return ({
+		uuid: s.s_uuid,
+		datacenter: s.s_datacenter,
+		lastseen: s.s_lastseen,
+		generation: s.s_generation,
+		worker_running: s.s_worker_running,
+		logfiles: s.s_logfiles.map(logfile_serialiser),
+		zones: ZONES.get_zones_for_server(s.s_uuid)
 	});
 }
 
@@ -762,12 +798,7 @@ setup_kang()
 			return (INFLIGHTS.dump_one(id));
 		case 'servers':
 			var s = server_lookup(id);
-			return ({
-				uuid: s.s_uuid,
-				outstanding: s.s_logfiles.map(
-				    logfile_serialiser),
-				zones: ZONES.get_zones_for_server(s.s_uuid)
-			});
+			return (server_serialiser(s));
 		default:
 			throw (new Error('kang: ' + id + ' of ' + type +
 			    'not found'));
