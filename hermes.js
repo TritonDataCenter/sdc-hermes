@@ -86,7 +86,7 @@ server_lookup(server)
 }
 
 function
-server_update(server_uuid, dcname)
+server_update(server_uuid, dcname, version)
 {
 	var s = server_lookup(server_uuid);
 
@@ -94,6 +94,7 @@ server_update(server_uuid, dcname)
 		s = {
 			s_uuid: server_uuid,
 			s_datacenter: dcname,
+			s_version: version,
 			s_lastseen: Math.floor(Date.now() / 1000),
 			s_lastenum: null,
 			s_discoverid: null,
@@ -112,7 +113,10 @@ server_update(server_uuid, dcname)
 function
 cnapi_poll()
 {
-	CNAPI.listServers(function (err, res) {
+	var params = {
+		extras: 'sysinfo'
+	};
+	CNAPI.listServers(params, function (err, res) {
 		if (err) {
 			LOG.error({
 				err: err
@@ -126,6 +130,20 @@ cnapi_poll()
 			if (!server.setup)
 				continue;
 
+			if (!server.sysinfo) {
+				LOG.warn({
+					server: server.uuid
+				}, 'server has no "sysinfo" in CNAPI');
+				continue;
+			}
+
+			/*
+			 * We presently only consider Compute Nodes running SDC
+			 * 7 and above.
+			 */
+			if (!server.sysinfo['SDC Version'])
+				continue;
+
 			if (!server.datacenter || !server.datacenter.trim()) {
 				LOG.warn({
 					server: server.uuid
@@ -133,7 +151,8 @@ cnapi_poll()
 				continue;
 			}
 
-			server_update(server.uuid, server.datacenter);
+			server_update(server.uuid, server.datacenter,
+			    server.sysinfo['SDC Version']);
 		}
 	});
 }
@@ -696,6 +715,7 @@ server_serialiser(s)
 	return ({
 		uuid: s.s_uuid,
 		datacenter: s.s_datacenter,
+		version: s.s_version,
 		lastseen: s.s_lastseen,
 		generation: s.s_generation,
 		worker_running: s.s_worker_running,
