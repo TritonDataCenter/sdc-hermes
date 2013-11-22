@@ -12,6 +12,7 @@ console.error('LOGSETS: %j', LOGSETS);
 function
 walk_dir(zonename, zonerole, ls, dir)
 {
+	var ents;
 	var now = Math.floor((+Date.now()) / 1000);
 
 	var statdir = dir;
@@ -22,7 +23,7 @@ walk_dir(zonename, zonerole, ls, dir)
 	}
 
 	try {
-		var ents = mod_fs.readdirSync(statdir);
+		ents = mod_fs.readdirSync(statdir);
 		console.error('*** FOUND DIR  %s  ***\n', statdir);
 	} catch (err) {
 		return;
@@ -42,7 +43,7 @@ walk_dir(zonename, zonerole, ls, dir)
 			RESULTS.push({
 				logset: ls.name,
 				path: path,
-				mtime: Math.floor((+st.mtime) / 1000),
+				mtime: st.mtime,
 				zonename: zonename,
 				zonerole: zonerole
 			});
@@ -50,6 +51,20 @@ walk_dir(zonename, zonerole, ls, dir)
 			walk_dir(zonename, zonerole, ls, path);
 		}
 	}
+}
+
+function
+sort_by_mtime(a, b)
+{
+	/*
+	 * We sort by modified time so that the oldest log files
+	 * on the system are discovered first in the case where we
+	 * have more than the cap count.  To ensure a stable total
+	 * ordering in the case of identical mtimes, we also sort on
+	 * the path as a fallback.
+	 */
+	return (a.mtime > b.mtime ? 1 : a.mtime < b.mtime ? -1 :
+	    a.path > b.path ? 1 : a.path < b.path ? -1 : 0);
 }
 
 (function
@@ -83,6 +98,17 @@ main()
 			    logset.search_dirs[j]);
 		}
 	}
+
+	/*
+	 * Get a consistent, stable ordering on log files in the system
+	 * and then ensure we only emit the first 100 records.  This prevents
+	 * overunning the buffer that ur is prepared to send back to hermes.
+	 * As the oldest log files are uploaded they will be removed, and
+	 * our window will slide forwards to the newer logs.
+	 */
+	RESULTS.sort(sort_by_mtime);
+	RESULTS = RESULTS.slice(0, 100);
+
 	console.log('%j', RESULTS);
 	process.exit(0);
 })();
