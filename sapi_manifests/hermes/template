@@ -14,7 +14,8 @@
   "manta": {
     "user": "{{{SDC_MANTA_USER}}}",
     "url": "{{{SDC_MANTA_URL}}}",
-    "key_id": "{{{SDC_KEY_ID}}}"
+    "key_id": "{{{SDC_KEY_ID}}}",
+    "connect_timeout": "{{{HERMES_CONNECT_TIMEOUT}}}"
   },
   "polling": {
     "sysinfo": 60,

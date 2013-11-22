@@ -746,7 +746,9 @@ create_manta_client()
 			user: CONFIG.manta.user
 		}),
 		user: CONFIG.manta.user,
-		url: CONFIG.manta.url
+		url: CONFIG.manta.url,
+		connectTimeout: Number(CONFIG.manta.connect_timeout) || 15000,
+		retry: false
 	});
 
 	MANTA = client;
