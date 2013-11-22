@@ -95,7 +95,7 @@ server_update(server_uuid, dcname, version)
 			s_uuid: server_uuid,
 			s_datacenter: dcname,
 			s_version: version,
-			s_lastseen: Math.floor(Date.now() / 1000),
+			s_lastseen: Date.now(),
 			s_lastenum: null,
 			s_discoverid: null,
 			s_logfiles: [],
@@ -104,7 +104,7 @@ server_update(server_uuid, dcname, version)
 		};
 		SERVERS.push(s);
 	} else {
-		s.s_lastseen = Math.floor(Date.now() / 1000);
+		s.s_lastseen = Date.now();
 	}
 
 	return (s);
@@ -200,11 +200,12 @@ logfile_update(s, logpath, zonename, zonerole)
 			 * script, but we must also debounce on the filename
 			 * timestamp here.
 			 */
-			var now = Math.floor(Date.now() / 1000);
-			var filetime = Math.floor(parsed_date.valueOf() / 1000);
+			var now = Date.now();
+			var filetime = parsed_date.valueOf();
+
 			var age = now - filetime;
 
-			if (age < logset.debounce_time) {
+			if (age < (logset.debounce_time * 1000)) {
 				LOG.debug({
 					server: s.s_uuid,
 					zonename: zonename,
@@ -284,13 +285,13 @@ server_upload_worker(s)
 	s.s_worker_running = true;
 
 	var lf;
-	var now = Math.floor(Date.now() / 1000);
+	var now = Date.now();
 	var until = null;
 
 	function reschedule(time) {
 		setTimeout(function () {
 			server_upload_worker(s);
-		}, time * 1000);
+		}, time);
 	}
 
 	function pl_callback(err) {
@@ -304,7 +305,7 @@ server_upload_worker(s)
 			 * Delay further attempts to process this log file for
 			 * 2 minutes:
 			 */
-			lf.lf_ignore_until = now + 120;
+			lf.lf_ignore_until = now + (120 * 1000);
 
 			s.s_worker_running = false;
 			reschedule(0);
@@ -369,7 +370,7 @@ server_upload_worker(s)
 	 * expires:
 	 */
 	if (until !== null) {
-		var delay = (until + 1) - Math.floor(Date.now() / 1000);
+		var delay = (until + 1000) - Date.now();
 		reschedule(delay > 0 ? delay : 0);
 	}
 }
@@ -433,6 +434,7 @@ worker_manta_upload(lf, next)
 		lf.lf_zonename
 	];
 	var data = {
+		name: 'worker_manta_upload',
 		logfile: lf,
 		barrier: mod_vasync.barrier(),
 		toString: function () {
@@ -555,6 +557,8 @@ worker_remove_log(lf, next)
 	];
 
 	var data = {
+		name: 'worker_remove_log',
+		logfile: lf,
 		toString: function () {
 			return ('worker_remove_log (server ' +
 			    lf.lf_server.s_uuid + ')');
@@ -607,6 +611,8 @@ discover_logs_one(server)
 	    mod_logsets.format_logsets_for_discovery(zones));
 
 	var data = {
+		name: 'discover_logs_one',
+		server: server,
 		toString: function () {
 			return ('discover_logs_one (server ' +
 			    server.s_uuid + ')');
