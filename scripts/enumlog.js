@@ -7,8 +7,6 @@ var mod_path = require('path');
 var LOGSETS = %%LOGSETS%%;
 var RESULTS = [];
 
-console.error('LOGSETS: %j', LOGSETS);
-
 function
 walk_dir(zonename, zonerole, ls, dir)
 {
@@ -19,12 +17,10 @@ walk_dir(zonename, zonerole, ls, dir)
 	if (zonename !== 'global') {
 		statdir = mod_path.join('/zones', zonename, 'root',
 		    dir);
-		console.error('DIR %s\nSTAT DIR %s\n', dir, statdir);
 	}
 
 	try {
 		ents = mod_fs.readdirSync(statdir);
-		console.error('*** FOUND DIR  %s  ***\n', statdir);
 	} catch (err) {
 		return;
 	}
@@ -32,8 +28,6 @@ walk_dir(zonename, zonerole, ls, dir)
 		var ent = ents[i];
 		var path = mod_path.join(dir, ent);
 		var statpath = mod_path.join(statdir, ent);
-
-		console.error('PATH %s\nSTAT PATH %s\n', path, statpath);
 
 		var st = mod_fs.lstatSync(statpath);
 		var age = now - Math.floor((+st.mtime) / 1000);
@@ -109,6 +103,6 @@ main()
 	RESULTS.sort(sort_by_mtime);
 	RESULTS = RESULTS.slice(0, 100);
 
-	console.log('%j', RESULTS);
+	process.stdout.write(JSON.stringify(RESULTS) + '\n');
 	process.exit(0);
 })();
