@@ -282,6 +282,16 @@ server_upload_worker(s)
 {
 	if (s.s_worker_running)
 		return;
+
+	/*
+	 * If the message queue connection is not OK, we can't do
+	 * anything.  Go back to sleep for a bit.
+	 */
+	if (!URCONN.ready()) {
+		reschedule(10 * 1000);
+		return;
+	}
+
 	s.s_worker_running = true;
 
 	var lf;
@@ -469,7 +479,7 @@ worker_manta_upload(lf, next)
 		/*
 		 * We've timed out, so abandon this request:
 		 */
-		data.barrer.removeAllListeners('drain');
+		data.barrier.removeAllListeners('drain');
 		infl.removeAllListeners('command_reply');
 		infl.removeAllListeners('http_put');
 		infl.complete();
@@ -621,7 +631,7 @@ discover_logs_one(server)
 
 	var infl = URCONN.send_command(server.s_uuid, script, [], data);
 	if (!infl) {
-		LOG.warn('URCONN.send_command() returned false');
+		LOG.debug('URCONN.send_command() returned false');
 		return;
 	}
 
@@ -675,6 +685,13 @@ discover_logs_one(server)
 function
 discover_logs_all()
 {
+	/*
+	 * If the message queue connection is not ready, then skip
+	 * this enumeration:
+	 */
+	if (!URCONN.ready())
+		return;
+
 	for (var i = 0; i < SERVERS.length; i++) {
 		var s = SERVERS[i];
 

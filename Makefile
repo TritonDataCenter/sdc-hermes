@@ -16,6 +16,7 @@ JS_FILES = \
 	lib/inflight.js \
 	lib/logsets.js \
 	lib/mq.js \
+	lib/mq_child.js \
 	lib/utils.js \
 	lib/zones.js
 
