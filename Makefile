@@ -1,9 +1,10 @@
 
 
+# Using a smartos/1.6.3-based sdcnode build for now.
 SDCNODE_BASE = \
-    https://download.joyent.com/pub/build/sdcnode/master-20130913T193104Z/sdcnode/
+	https://download.joyent.com/pub/build/sdcnode/01b2c898-945f-11e1-a523-af1afbe22822/master-20140131T234453Z/sdcnode/
 SDCNODE_TARBALL = \
-    sdcnode-v0.10.18-gcc4.6.2-zone-master-20130913T173257Z-gfb34f86.tgz
+	sdcnode-v0.10.18-zone-01b2c898-945f-11e1-a523-af1afbe22822-master-20140131T214003Z-gf904429.tgz
 
 NODE_EXEC = $(PWD)/node/bin/node
 NPM_EXEC = $(NODE_EXEC) $(PWD)/node/bin/npm
