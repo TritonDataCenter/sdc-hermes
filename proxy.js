@@ -72,24 +72,24 @@ validate_config(cfg)
 	}, 'validating configuration');
 
 	if (!mod_net.isIP(cfg.bind_ip)) {
-		LOG.warn('configuration invalid/missing "bind_ip"');
+		LOG.info('configuration invalid/missing "bind_ip"');
 		return (false);
 	}
 
 	if (typeof (cfg.bind_port) !== 'number') {
-		LOG.warn('configuration invalid/missing "bind_port"');
+		LOG.info('configuration invalid/missing "bind_port"');
 		return (false);
 	}
 
 	if (!Array.isArray(cfg.nameservers)) {
-		LOG.warn('configuration invalid/missing "nameservers"');
+		LOG.info('configuration invalid/missing "nameservers"');
 		return (false);
 	}
 
 	if (typeof (cfg.backend_host) !== 'string' ||
 	    typeof (cfg.backend_port) !== 'number' ||
 	    isNaN(cfg.backend_port) || cfg.backend_port < 1) {
-		LOG.warn('configuration invalid/missing "backend"');
+		LOG.info('configuration invalid/missing "backend"');
 		return (false);
 	}
 
@@ -104,7 +104,7 @@ main()
 
 	if (!CONFIG) {
 		if (EMIT_CONFIG_WARNING) {
-			LOG.warn('could not read configuration; sleeping...');
+			LOG.info('could not read configuration; sleeping...');
 			EMIT_CONFIG_WARNING = false;
 		}
 		setTimeout(main, 30 * 1000);
