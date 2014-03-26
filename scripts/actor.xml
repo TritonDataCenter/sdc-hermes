@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<!DOCTYPE service_bundle SYSTEM "/usr/share/lib/xml/dtd/service_bundle.dtd.1">
+<service_bundle type="manifest" name="smartdc-hermes-actor">
+  <service name="smartdc/hermes-actor" type="service" version="1">
+
+    <create_default_instance enabled="false"/>
+    <single_instance/>
+
+    <dependency name="dep0" grouping="require_all" restart_on="error" type="service">
+      <service_fmri value="svc:/milestone/multi-user:default"/>
+    </dependency>
+
+    <exec_method type="method" name="start" exec="/opt/smartdc/hermes-actor/method.ksh" timeout_seconds="600">
+      <method_context working_directory="/tmp"/>
+    </exec_method>
+
+    <exec_method type="method" name="stop" exec=":kill" timeout_seconds="30">
+      <method_context working_directory="/tmp"/>
+    </exec_method>
+
+    <property_group name="hermes" type="application">
+      <!-- should the startup script attempt to deploy the service? -->
+      <propval name="redeploy" type="boolean" value="true"/>
+      <!-- ip:port to connect to: -->
+      <propval name="server" type="astring" value="%%ENDPOINT%%"/>
+      <!-- update this revision when this smf manifest is functionally
+           different and requires the service to be recreated: -->
+      <propval name="revision" type="astring" value="%%SMF_REVISION%%"/>
+    </property_group>
+
+    <template>
+      <common_name>
+        <loctext xml:lang="C">Hermes Remote Actor</loctext>
+      </common_name>
+    </template>
+
+  </service>
+</service_bundle>
+<!-- vim: set ts=2 sts=2 sw=2 et: -->

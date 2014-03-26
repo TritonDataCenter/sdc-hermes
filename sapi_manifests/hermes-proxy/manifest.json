@@ -1,0 +1,5 @@
+{
+  "name": "hermes-proxy",
+  "path": "/opt/smartdc/hermes/etc/proxy.json",
+  "post_cmd": "/usr/sbin/svcadm restart hermes-proxy"
+}

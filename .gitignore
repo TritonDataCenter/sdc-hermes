@@ -4,3 +4,4 @@ bin/node
 node/
 proto/
 downloads/
+.*.sw?
