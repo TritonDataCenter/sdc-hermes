@@ -1,5 +1,6 @@
 {
   "admin_ip": "10.101.50.22",
+  "port": 9999,
   "sapi": {
     "url": "http://sapi.sf1.sf1.joyent.com"
   },
@@ -14,9 +15,5 @@
     "user": "manta_username",
     "key_id": "xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx"
   },
-  "rabbitmq": "guest:guest:10.101.50.13:5672",
-  "polling": {
-    "sysinfo": 60,
-    "discovery": 120
-  }
+  "max_concurrent_bootstraps": 32
 }

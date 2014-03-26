@@ -1,0 +1,10 @@
+{
+  "bind_ip": "{{{ADMIN_IP}}}",
+  "bind_port": 3128,
+  "backend": "{{{SDC_MANTA_URL}}}",
+  "log_level": "{{{HERMES_LOG_LEVEL}}}",
+  "nameservers": [
+    { "address": "8.8.8.8", "port": 53, "type": "udp" },
+    { "address": "8.8.4.4", "port": 53, "type": "udp" }
+  ]
+}

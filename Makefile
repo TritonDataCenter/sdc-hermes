@@ -1,32 +1,61 @@
+TOP =			$(PWD)
 
+#
+# Use a build of node compiled on the oldest supported SDC 6.5 platform:
+#
+MANTA_BASE =		http://us-east.manta.joyent.com
+NODE_VERSION =		v0.10.26
+NODE_TARBALL =		node-$(NODE_VERSION)-sdc65.tar.gz
+NODE_BASE_URL =		$(MANTA_BASE)/Joyent_Dev/public/old_node_builds
 
-# Using a smartos/1.6.3-based sdcnode build for now.
-SDCNODE_BASE = \
-	https://download.joyent.com/pub/build/sdcnode/01b2c898-945f-11e1-a523-af1afbe22822/master-20140131T234453Z/sdcnode/
-SDCNODE_TARBALL = \
-	sdcnode-v0.10.18-zone-01b2c898-945f-11e1-a523-af1afbe22822-master-20140131T214003Z-gf904429.tgz
+NODE_EXEC =		$(PWD)/node/bin/node
+NPM_EXEC =		$(NODE_EXEC) $(PWD)/node/bin/npm
 
-NODE_EXEC = $(PWD)/node/bin/node
-NPM_EXEC = $(NODE_EXEC) $(PWD)/node/bin/npm
+DESTDIR =		$(PWD)/proto
 
-DESTDIR = $(PWD)/proto
-
+#
+# Files that run in the sdc zone:
+#
 JS_FILES = \
 	hermes.js \
+	proxy.js \
 	lib/httpserver.js \
-	lib/inflight.js \
 	lib/logsets.js \
-	lib/mq.js \
-	lib/mq_child.js \
-	lib/utils.js \
+	lib/proxy_server.js \
+	lib/scripts.js \
+	lib/servers.js \
 	lib/zones.js
 
-SCRIPTS = \
-	enumlog.js \
-	pushlog.ksh \
-	removelog.ksh
+#
+# Files shared by the server process and the actor:
+#
+COMMON_JS_FILES = \
+	lib/utils.js
 
-SAPI_MANIFESTS = hermes
+#
+# Files shipped to the compute node by the actor deployment mechanism:
+#
+ACTOR_JS_FILES = \
+	actor.js \
+	lib/cmd.js \
+	lib/conn.js \
+	lib/findstream.js \
+	lib/logsets.js \
+	lib/remember.js \
+	lib/worker.js
+
+#
+# Script files run via CNAPI ServerExecute to deploy the actor to compute
+# nodes:
+#
+SCRIPTS = \
+	actor.ksh \
+	actor.xml \
+	bootstrap.ksh
+
+SAPI_MANIFESTS = \
+	hermes \
+	hermes-proxy
 SAPI_FILES = \
 	$(addsuffix /template,$(SAPI_MANIFESTS)) \
 	$(addsuffix /manifest.json,$(SAPI_MANIFESTS))
@@ -41,20 +70,41 @@ INSTALL_DIRS = \
 
 INSTALL_FILES = \
 	$(addprefix $(DESTDIR)$(PREFIX)/,$(JS_FILES)) \
+	$(addprefix $(DESTDIR)$(PREFIX)/,$(COMMON_JS_FILES)) \
 	$(addprefix $(DESTDIR)$(PREFIX)/scripts/,$(SCRIPTS)) \
 	$(DESTDIR)$(PREFIX)/bin/node \
 	$(DESTDIR)$(PREFIX)/smf/hermes.xml \
-	$(addprefix $(DESTDIR)$(PREFIX)/sapi_manifests/,$(SAPI_FILES))
+	$(DESTDIR)$(PREFIX)/smf/hermes-proxy.xml \
+	$(addprefix $(DESTDIR)$(PREFIX)/sapi_manifests/,$(SAPI_FILES)) \
+	$(DESTDIR)$(PREFIX)/actor.tar.gz
+
+CHECK_JS_FILES = \
+	$(JS_FILES) \
+	$(COMMON_JS_FILES) \
+	$(addprefix actor/,$(ACTOR_JS_FILES))
 
 .PHONY: all
 all: $(NODE_EXEC) 0-npm-stamp
 
 .PHONY: check
 check:
-	jshint $(JS_FILES)
+	@jshint $(CHECK_JS_FILES)
+
+.PHONY: xxx
+xxx:
+	@GIT_PAGER= git grep "XXX" $(CHECK_JS_FILES)
 
 .PHONY: install
 install: $(INSTALL_DIRS) $(DESTDIR)$(PREFIX)/node_modules $(INSTALL_FILES)
+
+$(DESTDIR)$(PREFIX)/actor.tar.gz: $(ACTOR_JS_FILES:%=actor/%) \
+    $(COMMON_JS_FILES) $(DESTDIR)$(PREFIX)/bin/node \
+    $(DESTDIR)$(PREFIX)/node_modules
+	/usr/bin/tar cfz $@ \
+	    -C $(DESTDIR)$(PREFIX) node_modules \
+	    -C $(DESTDIR)$(PREFIX) bin/node \
+	    $(ACTOR_JS_FILES:%=-C $(TOP)/actor %) \
+	    $(COMMON_JS_FILES:%=-C $(TOP) %)
 
 $(INSTALL_DIRS):
 	mkdir -p $@
@@ -89,17 +139,19 @@ $(DESTDIR)$(PREFIX)/node_modules: 0-npm-stamp
 	rm -rf $@
 	cp -r $(PWD)/node_modules $@
 
-downloads/$(SDCNODE_TARBALL):
-	mkdir $(PWD)/downloads
-	cd $(PWD)/downloads && \
-	curl -fsS -kOL $(SDCNODE_BASE)$(SDCNODE_TARBALL)
-	touch $@
+downloads/$(NODE_TARBALL):
+	@echo "downloading node $(NODE_VERSION) ..."
+	mkdir -p `dirname $@`
+	curl -fsS -kL -o $@ '$(NODE_BASE_URL)/$(NODE_TARBALL)'
 
-$(NODE_EXEC): downloads/$(SDCNODE_TARBALL)
-	tar xfz downloads/$(SDCNODE_TARBALL)
+$(NODE_EXEC): downloads/$(NODE_TARBALL)
+	@echo "extracting node $(NODE_VERSION) ..."
+	mkdir -p node
+	gtar -xz -C node -f downloads/$(NODE_TARBALL)
 	[[ -f $(NODE_EXEC) ]] && touch $(NODE_EXEC)
 
 clean:
+	rm -rf $(PWD)/node_modules
 	rm -rf $(PWD)/proto
 
 clobber: clean
