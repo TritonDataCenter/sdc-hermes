@@ -41,7 +41,7 @@ var GS = {
 
 	gs_worker: {
 		timeout: null,
-		enabled: true,
+		enabled: false,
 		logset_queue: [],
 		running: {}
 	},
@@ -293,6 +293,10 @@ handle_message(msg)
 	case 'identify_ok':
 		log.debug('identify_ok received; resetting backoff');
 		GS.gs_backoff.reset();
+		/*
+		 * The worker should run again:
+		 */
+		GS.gs_worker.enabled = true;
 		break;
 
 	case 'configuration':
@@ -341,6 +345,7 @@ handle_message(msg)
 		break;
 
 	case 'shutdown':
+		log.info('server triggered shutdown');
 		cancel_log_workers();
 		GS.gs_shed.end('shutting down');
 		log.info('shutdown requested, disabling service.');
