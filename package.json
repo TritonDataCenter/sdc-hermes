@@ -17,6 +17,7 @@
     "verror": "^1.4.0",
     "lstream": "^0.0.4",
     "native-dns": "^0.4.1",
-    "backoff": "^2.3.0"
+    "backoff": "^2.3.0",
+    "jsprim": "^0.5.1"
   }
 }
