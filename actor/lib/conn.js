@@ -41,6 +41,7 @@ connect_server(server, callback)
 	});
 
 	req.on('upgrade', function (res, socket, head) {
+		socket.setKeepAlive(true);
 		try {
 			wsc = WATERSHED.connect(res, socket, head, wskey);
 		} catch (ex) {

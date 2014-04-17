@@ -256,8 +256,13 @@ deployment_worker()
 {
 	var servers = GS.gs_servermgr.list();
 
-	for (var i = 0; i < servers.length; i++) {
-		var server = servers[i];
+	while (servers.length > 0) {
+		/*
+		 * Deploy servers in a random order so that we don't get stuck
+		 * on the first N servers in the list which fail to deploy.
+		 */
+		var idx = Math.floor(Math.random() * servers.length);
+		var server = servers.splice(idx, 1)[0];
 
 		/*
 		 * If the server is not connected, assume the actor is not
