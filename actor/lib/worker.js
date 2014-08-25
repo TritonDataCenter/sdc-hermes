@@ -1,4 +1,12 @@
-/* vim: set syntax=javascript ts=8 sts=8 sw=8 noet: */
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/*
+ * Copyright (c) 2014, Joyent, Inc.
+ */
 
 var mod_fs = require('fs');
 var mod_path = require('path');
@@ -539,3 +547,5 @@ _manta_upload(file, manta_path, _delete, next)
 module.exports = {
 	LogsetWorker: LogsetWorker
 };
+
+/* vim: set syntax=javascript ts=8 sts=8 sw=8 noet: */

@@ -19,5 +19,10 @@
     "native-dns": "^0.4.1",
     "backoff": "^2.3.0",
     "jsprim": "^0.5.1"
+  },
+  "license": "MPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/joyent/sdc-hermes.git"
   }
 }

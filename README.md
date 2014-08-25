@@ -1,33 +1,24 @@
 # hermes
 
-This is an interim tool for uploading logs from SDC Compute Nodes and Zones into Manta.
-It is built to run in the "sdc" zone, which need to be able to resolve the names of,
-and route traffic to, the Manta DC in question.
+Hermes is a log and data file archival system provided as part of a
+SmartDataCenter (SDC) deployment.  Hermes archives log (or other data) files
+from compute nodes and SDC internal service zones; for example, the usage
+telemetry files from the _hagfish-watcher_ agent, or audit logs from
+_CloudAPI_.
 
-## Configuration
+Hermes transfers the nominated set of data or log files to the storage provided
+by a Joyent Manta instance, removing them from local disk only after the upload
+is complete _and_ a configurable retention period has passed.  Users without
+their own Manta deployment may use the public Manta instance available through
+the Joyent Public Cloud.
 
-```js
-{
-  "admin_ip": "10.101.50.22",
-  "sapi": {
-    "url": "http://sapi.sf1.sf1.joyent.com"
-  },
-  "rabbitmq": "guest:guest:10.101.50.13:5672",
-  "polling": {
-    "sysinfo": 60,
-    "discovery": 120
-  }
-}
-```
+The server process expects to run in the `"sdc"` zone within an SDC deployment.
+That zone must be able to access the Internet, or the network to which the
+target Manta instance is available.  Compute nodes access the target Manta
+through a proxy running in the `"sdc"` zone, and thus do not themselves require
+direct access.
 
-Polling intervals are specific in _seconds_ -- `polling.sysinfo` for how often
-we (re-)discover _servers_; `polling.discovery` for how often we (re-)discover
-_log files_.
+## License
 
-The `admin_ip` is the IP address we will bind to for the SDC _ADMIN_ network.
-
-## Logsets
-
-```
-/* XXX */
-```
+This Source Code Form is subject to the terms of the Mozilla Public License, v.
+2.0.  For the full license text see LICENSE, or http://mozilla.org/MPL/2.0/.
