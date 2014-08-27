@@ -6,7 +6,7 @@
   "author": "Joshua M. Clulow <jmc@joyent.com>",
   "private": true,
   "dependencies": {
-    "sdc-clients": "git+ssh://git@git.joyent.com:node-sdc-clients.git",
+    "sdc-clients": "git+ssh://git@github.com:joyent/node-sdc-clients.git",
     "manta": "git://github.com/joyent/node-manta.git#8a05470b64d57aafab840320863214c8b82ba161",
     "bunyan": "^0.22.1",
     "restify": "^2.6.3",
