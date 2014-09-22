@@ -1,5 +1,11 @@
 # hermes
 
+This repository is part of the Joyent SmartDataCenter project (SDC).  For
+contribution guidelines, issues, and general documentation, visit the main
+[SDC](http://github.com/joyent/sdc) project page.
+
+## Overview
+
 Hermes is a log and data file archival system provided as part of a
 SmartDataCenter (SDC) deployment.  Hermes archives log (or other data) files
 from compute nodes and SDC internal service zones; for example, the usage
