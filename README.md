@@ -1,4 +1,4 @@
-# hermes
+# sdc-hermes
 
 This repository is part of the Joyent SmartDataCenter project (SDC).  For
 contribution guidelines, issues, and general documentation, visit the main
@@ -28,3 +28,5 @@ direct access.
 
 This Source Code Form is subject to the terms of the Mozilla Public License, v.
 2.0.  For the full license text see LICENSE, or http://mozilla.org/MPL/2.0/.
+
+Copyright (c) 2014, Joyent, Inc.
