@@ -97,8 +97,8 @@ CHECK_JS_FILES = \
 all: $(NODE_EXEC) 0-npm-stamp
 
 .PHONY: check
-check:
-	@jshint $(CHECK_JS_FILES)
+check: 0-npm-stamp
+	$(NODE_EXEC) node_modules/.bin/jshint $(CHECK_JS_FILES)
 
 .PHONY: xxx
 xxx:
