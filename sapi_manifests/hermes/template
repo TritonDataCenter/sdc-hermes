@@ -1,5 +1,5 @@
 {
-  "admin_ip": "{{{ADMIN_IP}}}",
+  "admin_ip": "{{{auto.ADMIN_IP}}}",
   "port": 9999,
   "log_level": "{{{HERMES_LOG_LEVEL}}}",
   "sapi": {

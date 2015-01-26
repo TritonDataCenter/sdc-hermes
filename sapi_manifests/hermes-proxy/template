@@ -1,5 +1,5 @@
 {
-  "bind_ip": "{{{ADMIN_IP}}}",
+  "bind_ip": "{{{auto.ADMIN_IP}}}",
   "bind_port": 3128,
   "backend": "{{{SDC_MANTA_URL}}}",
   "log_level": "{{{HERMES_LOG_LEVEL}}}",
