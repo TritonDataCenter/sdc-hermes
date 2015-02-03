@@ -24,6 +24,15 @@ target Manta instance is available.  Compute nodes access the target Manta
 through a proxy running in the `"sdc"` zone, and thus do not themselves require
 direct access.
 
+
+## Architecture
+
+"hermes" svc in the "sdc" zone
+    --config-->     "hermes-actor" svc in GZ
+    --http-->       "hermes-proxy" svc in the "sdc" zone
+    --CONNECT-->    manta
+
+
 ## License
 
 This Source Code Form is subject to the terms of the Mozilla Public License, v.
