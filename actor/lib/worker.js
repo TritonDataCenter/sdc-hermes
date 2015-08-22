@@ -411,6 +411,18 @@ pl_manta_put(t, next)
 
 	var start = Date.now();
 	t.t_manta.put(t.t_manta_path, finstr, opts, function (err) {
+		/*
+		 * As we have literally no idea what the Manta client has done
+		 * with the stream we passed it, we will immediately
+		 * defensively destroy the file stream.  If there is still a
+		 * file descriptor associated with it, for whatever reason,
+		 * this should ensure that we don't leak it.
+		 *
+		 * With file descriptors, it is best to take the "Glengarry
+		 * Glen Ross" approach: Always Be Closing.
+		 */
+		finstr.destroy();
+
 		if (err && err.name !== 'PreconditionFailedError') {
 			next(new VError(err, 'manta put error: %s',
 			    t.t_manta_path));
