@@ -142,7 +142,7 @@ $(DESTDIR)$(PREFIX)/sapi_manifests/%: $(PWD)/sapi_manifests/%
 
 0-npm-stamp: $(NODE_EXEC) package.json
 	rm -rf $(PWD)/node_modules
-	PATH=$(PWD)/node/bin:$(PATH) $(NPM_EXEC) install
+	PATH=$(PWD)/node/bin:$(PATH) NPM_CONFIG_CACHE= $(NPM_EXEC) install
 	touch $@
 
 $(DESTDIR)$(PREFIX)/node_modules: 0-npm-stamp
