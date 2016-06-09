@@ -102,7 +102,6 @@
       "dhcpd",
       "fwapi",
       "imgapi",
-      "keyapi",
       "manatee",
       "manta",
       "moray",
@@ -113,7 +112,6 @@
       "sapi",
       "sdc",
       "ufds",
-      "usageapi",
       "vmapi",
       "workflow"
     ]
