@@ -126,10 +126,7 @@ main()
 		bind_ip: CONFIG.bind_ip,
 		backend_host: CONFIG.backend_host,
 		backend_port: CONFIG.backend_port,
-		nameservers: [
-			{ address: '8.8.8.8', port: 53, type: 'udp' },
-			{ address: '8.8.4.4', port: 53, type: 'udp' }
-		]
+		nameservers: CONFIG.nameservers
 	});
 }
 
