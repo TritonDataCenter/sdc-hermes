@@ -88,11 +88,6 @@ validate_config(cfg)
 		return (false);
 	}
 
-	if (!Array.isArray(cfg.nameservers)) {
-		LOG.info('configuration invalid/missing "nameservers"');
-		return (false);
-	}
-
 	if (typeof (cfg.backend_host) !== 'string' ||
 	    typeof (cfg.backend_port) !== 'number' ||
 	    isNaN(cfg.backend_port) || cfg.backend_port < 1) {
@@ -125,11 +120,7 @@ main()
 		bind_port: CONFIG.bind_port,
 		bind_ip: CONFIG.bind_ip,
 		backend_host: CONFIG.backend_host,
-		backend_port: CONFIG.backend_port,
-		nameservers: [
-			{ address: '8.8.8.8', port: 53, type: 'udp' },
-			{ address: '8.8.4.4', port: 53, type: 'udp' }
-		]
+		backend_port: CONFIG.backend_port
 	});
 }
 
