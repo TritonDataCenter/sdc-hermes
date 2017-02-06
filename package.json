@@ -1,6 +1,6 @@
 {
   "name": "hermes",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Centralised tool to upload SDC logs to Manta",
   "main": "hermes.js",
   "author": "Joshua M. Clulow <jmc@joyent.com>",
@@ -16,9 +16,9 @@
     "vasync": "^1.4.3",
     "verror": "^1.4.0",
     "lstream": "^0.0.4",
-    "native-dns": "^0.4.1",
     "backoff": "^2.3.0",
-    "jsprim": "^0.5.1"
+    "jsprim": "^0.5.1",
+    "cueball": "^2.0.1"
   },
   "devDependencies": {
     "jshint": "^2.5.6"
