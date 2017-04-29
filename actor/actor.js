@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (c) 2014, Joyent, Inc.
+ * Copyright (c) 2017, Joyent, Inc.
  */
 
 var mod_os = require('os');
@@ -17,6 +17,8 @@ var mod_assert = require('assert-plus');
 var mod_vasync = require('vasync');
 var mod_manta = require('manta');
 var mod_backoff = require('backoff');
+var mod_yakaa = require('yakaa');
+var mod_jsprim = require('jsprim');
 
 var lib_utils = require('./lib/utils');
 var lib_conn = require('./lib/conn');
@@ -67,8 +69,9 @@ var GS = {
 
 	gs_manta: {
 		client: null,
-		user: null
-	}
+		user: null,
+		agent: null
+	},
 };
 
 function
@@ -320,9 +323,34 @@ handle_message(msg)
 			http_proxy: msg.http_proxy,
 			https_proxy: msg.https_proxy
 		}, 'received manta configuration from server');
-		if (GS.gs_manta.client)
+
+		if (GS.gs_manta.client) {
 			GS.gs_manta.client.close();
+		}
+		if (GS.gs_manta.agent) {
+			GS.gs_manta.agent.destroy();
+		}
+
 		GS.gs_manta.user = msg.config.user;
+
+		/*
+		 * In order to funnel Manta requests through the hermes proxy,
+		 * we create a proxy-capable Agent and give it to the Manta
+		 * client for outbound requests.  If the URL is not obviously
+		 * an insecure HTTP URL, we assume HTTPS.
+		 */
+		if (mod_jsprim.startsWith(msg.config.url, 'http:')) {
+			GS.gs_manta.agent = new mod_yakaa({
+				proxy: msg.http_proxy,
+				keepAlive: true
+			});
+		} else {
+			GS.gs_manta.agent = new mod_yakaa.SSL({
+				proxy: msg.https_proxy,
+				keepAlive: true
+			});
+		}
+
 		GS.gs_manta.client = mod_manta.createClient({
 			sign: mod_manta.privateKeySigner({
 				key: msg.private_key,
@@ -333,7 +361,7 @@ handle_message(msg)
 			url: msg.config.url,
 			connectTimeout: msg.config.connect_timeout,
 			retry: false,
-			proxy: msg.https_proxy || msg.http_proxy
+			agent: GS.gs_manta.agent
 		});
 		break;
 

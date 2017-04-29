@@ -1,0 +1,77 @@
+#!/bin/bash
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+
+#
+# Copyright (c) 2017, Joyent, Inc.
+#
+
+BASEURL='https://download.joyent.com/pub/build/sdcnode'
+BRANCH='master'
+IMAGE=$1
+VARIANT=$2
+OUTDIR=$3
+
+if [[ -z $IMAGE || -z $VARIANT || -z $OUTDIR ]]; then
+	printf 'ERROR: usage: download_sdcnode IMAGE VARIANT OUTDIR\n' 2>&1
+	exit 1
+fi
+
+FULLURL="$BASEURL/$IMAGE/$BRANCH-latest/sdcnode/"
+TARGET="sdcnode-$VARIANT-$IMAGE.tar.gz"
+
+#
+# Download the index page which lists the current set of available sdcnode
+# builds:
+#
+if ! list=$(curl -sSfL "$FULLURL") || [[ -z "$list" ]]; then
+	printf 'ERROR: could not download index page\n' >&2
+	exit 1
+fi
+
+#
+# Using only commonly found household items, extract the full name of the
+# sdcnode tar archive we need.
+#
+# One word to describe this process might be "brittle".
+#
+if ! name=$(awk -v "v=$VARIANT" -v "b=$BRANCH" -v "i=$IMAGE" -F\" '
+    BEGIN { pattern = "^sdcnode-"v"-"i"-"b"-.*.tgz$"; }
+    $1 == "<a href=" && $2 ~ pattern { print $2 }' <<< "$list") ||
+    [[ -z "$name" ]]; then
+	printf 'ERROR: could not locate file name in index page\n' >&2
+	exit 1
+fi
+
+if [[ ! -f $OUTDIR/$name ]]; then
+	#
+	# If the full file name of the latest sdcnode build does not exist,
+	# download it now to a temporary file.  If it succeeds, move it into
+	# place.
+	#
+	if ! curl -sSf -o "$OUTDIR/.tmp.$name" "$FULLURL$name"; then
+		printf 'ERROR: could not download sdcnode' >&2
+		rm -f "$OUTPUT.tmp"
+		exit 1
+	fi
+
+	if ! mv "$OUTDIR/.tmp.$name" "$OUTDIR/$name"; then
+		exit 1
+	fi
+fi
+
+#
+# Make sure the target link points at the correct file:
+#
+rm -f "$OUTDIR/$TARGET"
+if ! ln -s "$name" "$OUTDIR/$TARGET"; then
+	printf 'ERROR: could not create target link\n' >&2
+	exit 1
+fi
+
+exit 0
+
+# vim: set ts=8 sts=8 sw=8 noet:

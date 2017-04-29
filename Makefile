@@ -5,18 +5,17 @@
 #
 
 #
-# Copyright (c) 2014, Joyent, Inc.
+# Copyright (c) 2017, Joyent, Inc.
 #
 
 TOP =			$(PWD)
 
 #
-# Use a build of node compiled on the oldest supported SDC 6.5 platform:
+# Use a build of node compiled to work in the global zone.
 #
-MANTA_BASE =		http://us-east.manta.joyent.com
-NODE_VERSION =		v0.10.26
-NODE_TARBALL =		node-$(NODE_VERSION)-sdc65.tar.gz
-NODE_BASE_URL =		$(MANTA_BASE)/Joyent_Dev/public/old_node_builds
+NODE_IMAGE =		18b094b0-eb01-11e5-80c1-175dac7ddf02
+NODE_VARIANT =		v4.8.1-gz
+NODE_TARBALL =		downloads/sdcnode-$(NODE_VARIANT)-$(NODE_IMAGE).tar.gz
 
 NODE_EXEC =		$(PWD)/node/bin/node
 NPM_EXEC =		$(NODE_EXEC) $(PWD)/node/bin/npm
@@ -83,6 +82,8 @@ INSTALL_FILES = \
 	$(addprefix $(DESTDIR)$(PREFIX)/,$(COMMON_JS_FILES)) \
 	$(addprefix $(DESTDIR)$(PREFIX)/scripts/,$(SCRIPTS)) \
 	$(DESTDIR)$(PREFIX)/bin/node \
+	$(DESTDIR)$(PREFIX)/lib/libgcc_s.so.1 \
+	$(DESTDIR)$(PREFIX)/lib/libstdc++.so.6 \
 	$(DESTDIR)$(PREFIX)/smf/hermes.xml \
 	$(DESTDIR)$(PREFIX)/smf/hermes-proxy.xml \
 	$(addprefix $(DESTDIR)$(PREFIX)/sapi_manifests/,$(SAPI_FILES)) \
@@ -109,10 +110,14 @@ install: $(INSTALL_DIRS) $(DESTDIR)$(PREFIX)/node_modules $(INSTALL_FILES)
 
 $(DESTDIR)$(PREFIX)/actor.tar.gz: $(ACTOR_JS_FILES:%=actor/%) \
     $(COMMON_JS_FILES) $(DESTDIR)$(PREFIX)/bin/node \
+    $(DESTDIR)$(PREFIX)/lib/libgcc_s.so.1 \
+    $(DESTDIR)$(PREFIX)/lib/libstdc++.so.6 \
     $(DESTDIR)$(PREFIX)/node_modules
 	/usr/bin/tar cfz $@ \
 	    -C $(DESTDIR)$(PREFIX) node_modules \
 	    -C $(DESTDIR)$(PREFIX) bin/node \
+	    -C $(DESTDIR)$(PREFIX) lib/libgcc_s.so.1 \
+	    -C $(DESTDIR)$(PREFIX) lib/libstdc++.so.6 \
 	    $(ACTOR_JS_FILES:%=-C $(TOP)/actor %) \
 	    $(COMMON_JS_FILES:%=-C $(TOP) %)
 
@@ -129,6 +134,9 @@ $(DESTDIR)$(PREFIX)/%.js: $(PWD)/%.js
 	cp $^ $@
 
 $(DESTDIR)$(PREFIX)/bin/node: $(PWD)/node/bin/node
+	cp $^ $@
+
+$(DESTDIR)$(PREFIX)/lib/lib%: $(PWD)/node/lib/lib%
 	cp $^ $@
 
 $(DESTDIR)$(PREFIX)/smf/%.xml: $(PWD)/smf/manifests/%.xml.in
@@ -149,15 +157,15 @@ $(DESTDIR)$(PREFIX)/node_modules: 0-npm-stamp
 	rm -rf $@
 	cp -r $(PWD)/node_modules $@
 
-downloads/$(NODE_TARBALL):
-	@echo "downloading node $(NODE_VERSION) ..."
-	mkdir -p `dirname $@`
-	curl -fsS -kL -o $@ '$(NODE_BASE_URL)/$(NODE_TARBALL)'
+$(NODE_TARBALL):
+	@echo "downloading sdcnode $(NODE_VARIANT) ..."
+	mkdir -p $(@D)
+	./tools/download_sdcnode $(NODE_IMAGE) $(NODE_VARIANT) $(@D)
 
-$(NODE_EXEC): downloads/$(NODE_TARBALL)
+$(NODE_EXEC): $(NODE_TARBALL)
 	@echo "extracting node $(NODE_VERSION) ..."
-	mkdir -p node
-	gtar -xz -C node -f downloads/$(NODE_TARBALL)
+	-rm -rf node
+	gtar -xz -f $(NODE_TARBALL)
 	[[ -f $(NODE_EXEC) ]] && touch $(NODE_EXEC)
 
 clean:

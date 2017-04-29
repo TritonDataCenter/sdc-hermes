@@ -6,19 +6,20 @@
   "author": "Joshua M. Clulow <jmc@joyent.com>",
   "private": true,
   "dependencies": {
-    "sdc-clients": "~9.1",
-    "manta": "git://github.com/joyent/node-manta.git#8a05470b64d57aafab840320863214c8b82ba161",
-    "bunyan": "^0.22.1",
-    "restify": "^2.6.3",
-    "assert-plus": "~0.1.5",
+    "sdc-clients": "^10.2.0",
+    "manta": "^4.3.0",
+    "bunyan": "^1.8.10",
+    "restify": "^4.3.0",
+    "assert-plus": "^1.0.0",
     "once": "~1.2.0",
-    "watershed": "^0.3.0",
-    "vasync": "^1.4.3",
-    "verror": "^1.4.0",
+    "watershed": "^0.3.3",
+    "vasync": "^1.6.4",
+    "verror": "^1.9.0",
     "lstream": "^0.0.4",
     "backoff": "^2.3.0",
-    "jsprim": "^0.5.1",
-    "cueball": "^2.0.1"
+    "jsprim": "^1.4.0",
+    "cueball": "^2.0.1",
+    "yakaa": "https://github.com/jclulow/yakaa.git#a144f715f413a13549d320d0c6156675994a03fb"
   },
   "devDependencies": {
     "jshint": "^2.5.6"
