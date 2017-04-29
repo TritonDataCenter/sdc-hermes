@@ -98,12 +98,19 @@ read_config()
 			cfg.manta.user = process.env.MANTA_KEY_ID;
 
 		/*
-		 * Set a default connction timeout:
+		 * Set a default connction timeout.  In the past this timeout
+		 * was very short (6 seconds), but that was the source of a
+		 * number of problems.  If the proxy server is very busy, there
+		 * can be multi-second latency bubbles for connections at the
+		 * back of the queue.  A longer timeout gives the proxy a
+		 * chance to catch up before we abandon our connection and try
+		 * again, thus enqueueing even more work.
 		 */
 		if (!cfg.manta.connect_timeout) {
-			cfg.manta.connect_timeout = 6000;
+			cfg.manta.connect_timeout = 45 * 1000;
 		} else {
-			cfg.manta.connect_timeout = Number(cfg.manta.connect_timeout);
+			cfg.manta.connect_timeout = Number(
+			    cfg.manta.connect_timeout);
 		}
 
 		/*
