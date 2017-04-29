@@ -10,7 +10,6 @@
 
 var mod_os = require('os');
 var mod_fs = require('fs');
-var mod_child = require('child_process');
 var mod_path = require('path');
 
 var mod_assert = require('assert-plus');
@@ -72,26 +71,35 @@ var GS = {
 		user: null,
 		agent: null
 	},
+
+	gs_redeploying: false,
 };
 
 function
-redeploy(_, next)
+redeploy()
 {
-	mod_vasync.pipeline({
-		funcs: [
-			lib_cmd.svccfg.bind(null, [ '-s', GS.gs_sfmri,
-			    'setprop hermes/redeploy = true' ]),
-			lib_cmd.svcadm.bind(null, [ 'refresh', GS.gs_ifmri ]),
-			lib_cmd.svcadm.bind(null, [ 'restart', GS.gs_ifmri ])
-		]
-	}, function (err) {
+	if (GS.gs_redeploying) {
+		return;
+	}
+	GS.gs_redeploying = true;
+
+	mod_vasync.waterfall([ function rdpl_setprop(next) {
+		lib_cmd.svccfg([ '-s', GS.gs_sfmri,
+		    'setprop hermes/redeploy = true' ], next);
+
+	}, function rdpl_refresh(next) {
+		lib_cmd.svcadm([ 'refresh', GS.gs_ifmri ], next);
+
+	}, function rdpl_restart(next) {
+		lib_cmd.svcadm([ 'restart', GS.gs_ifmri ], next);
+
+	} ], function (err) {
 		if (err) {
-			GS.gs_log.error({
-				err: err
-			}, 'failed to initiate redeployment');
+			GS.gs_log.error({ err: err },
+			    'failed to initiate redeployment');
 		}
-		if (next)
-			next(err);
+
+		GS.gs_redeploying = false;
 	});
 }
 
@@ -131,18 +139,13 @@ get_deployed_version(_, next)
 function
 get_sysinfo(_, next)
 {
-	mod_child.execFile('/usr/bin/sysinfo', function (err, stdout, stderr) {
+	lib_cmd.sysinfo(function (err, sysinfo) {
 		if (err) {
 			next(err);
 			return;
 		}
 
-		try {
-			GS.gs_sysinfo = JSON.parse(stdout);
-		} catch (ex) {
-			next(ex);
-			return;
-		}
+		GS.gs_sysinfo = sysinfo;
 
 		/*
 		 * If you try, sometimes, you might just find you get what
@@ -383,21 +386,25 @@ handle_message(msg)
 		log.info('server triggered shutdown');
 		cancel_log_workers();
 		GS.gs_shed.end('shutting down');
+
 		log.info('shutdown requested, disabling service.');
-		var args = [
-			'disable',
-			'-s',
-			process.env.SMF_FMRI
-		];
-		mod_child.execFile('/usr/sbin/svcadm', args,
-		    function () {
+		lib_cmd.svcadm([ 'disable', process.env.SMF_FMRI ],
+		    function (err) {
+			if (err) {
+				log.fatal('failed to disable service');
+				process.exit(1);
+			}
+
+			var wait = 60;
 			setTimeout(function () {
 				/*
 				 * Should not reach here, as smf(5)
 				 * will kill us off.
 				 */
+				log.fatal('tried to disable, but still ' +
+				    'running after %d seconds', wait);
 				process.exit(1);
-			}, 10 * 1000);
+			}, wait * 1000);
 		});
 		break;
 

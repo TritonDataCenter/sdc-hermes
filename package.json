@@ -19,7 +19,8 @@
     "backoff": "^2.3.0",
     "jsprim": "^1.4.0",
     "cueball": "^2.0.1",
-    "yakaa": "https://github.com/jclulow/yakaa.git#a144f715f413a13549d320d0c6156675994a03fb"
+    "yakaa": "https://github.com/jclulow/yakaa.git#a144f715f413a13549d320d0c6156675994a03fb",
+    "forkexec": "^1.1.0"
   },
   "devDependencies": {
     "jshint": "^2.5.6"

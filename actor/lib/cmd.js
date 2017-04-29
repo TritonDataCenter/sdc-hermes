@@ -5,64 +5,92 @@
  */
 
 /*
- * Copyright (c) 2014, Joyent, Inc.
+ * Copyright (c) 2017, Joyent, Inc.
  */
 
-var mod_child = require('child_process');
-
+var mod_assert = require('assert-plus');
+var mod_forkexec = require('forkexec');
 var mod_verror = require('verror');
 
-var VError = mod_verror.VError;
+var VE = mod_verror.VError;
 
 function
-svccfg(args, _, next)
+svccfg(args, next)
 {
-	if (typeof (_) === 'function')
-		next = _;
-	mod_child.execFile('/usr/sbin/svccfg', args, function (err, so, se) {
-		if (err) {
-			next(new VError(err, 'svccfg ' + args.join(' ') +
-			    ': ' + se));
-			return;
-		}
-		next();
+	mod_assert.arrayOfString(args, 'args');
+	mod_assert.func(next, 'next');
+
+	mod_forkexec.forkExecWait({
+		argv: [ '/usr/sbin/svccfg' ].concat(args),
+		includeStderr: true
+	}, function (err, info) {
+		next(err);
 	});
 }
 
 function
-svcadm(args, _, next)
+svcadm(args, next)
 {
-	if (typeof (_) === 'function')
-		next = _;
-	mod_child.execFile('/usr/sbin/svcadm', args, function (err, so, se) {
-		if (err) {
-			next(new VError(err, 'svcadm ' + args.join(' ') +
-			    ': ' + se));
-			return;
-		}
-		next();
+	mod_assert.arrayOfString(args, 'args');
+	mod_assert.func(next, 'next');
+
+	mod_forkexec.forkExecWait({
+		argv: [ '/usr/sbin/svcadm' ].concat(args),
+		includeStderr: true
+	}, function (err, info) {
+		next(err);
 	});
 }
 
 function
-svcprop(args, _, next)
+svcprop(args, next)
 {
-	if (typeof (_) === 'function')
-		next = _;
-	mod_child.execFile('/usr/bin/svcprop', args, function (err, so, se) {
+	mod_assert.arrayOfString(args, 'args');
+	mod_assert.func(next, 'next');
+
+	mod_forkexec.forkExecWait({
+		argv: [ '/usr/bin/svcprop' ].concat(args),
+		includeStderr: true
+	}, function (err, info) {
 		if (err) {
-			next(new VError(err, 'svcprop ' + args.join(' ') +
-			    ': ' + se));
+			next(err);
 			return;
 		}
-		next(null, so.trim());
+		next(null, info.stdout.trim());
+	});
+}
+
+function
+sysinfo(next)
+{
+	mod_assert.func(next, 'next');
+
+	mod_forkexec.forkExecWait({
+		argv: [ '/usr/bin/sysinfo' ],
+		includeStderr: true
+	}, function (err, info) {
+		if (err) {
+			next(err);
+			return;
+		}
+
+		var o;
+		try {
+			o = JSON.parse(info.stdout);
+		} catch (ex) {
+			next(new VE(ex, 'invalid sysinfo JSON'));
+			return;
+		}
+
+		next(null, o);
 	});
 }
 
 module.exports = {
 	svccfg: svccfg,
 	svcadm: svcadm,
-	svcprop: svcprop
+	svcprop: svcprop,
+	sysinfo: sysinfo
 };
 
 /* vim: set syntax=javascript ts=8 sts=8 sw=8 noet: */
