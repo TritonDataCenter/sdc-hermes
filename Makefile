@@ -11,11 +11,12 @@
 TOP =			$(PWD)
 
 #
-# Use a build of node compiled to work in a non-global zone since that is where
-# hermes and hermes-proxy will run.
+# Use a build of node compiled to work in the global zone since that's where
+# hermes-actor runs, and it also happens to work with hermes and hermes-proxy
+# even though they run in the sdc zone.
 #
 NODE_PREBUILT_VERSION = v6.15.1
-NODE_PREBUILT_TAG = zone
+NODE_PREBUILT_TAG = gz
 ifeq ($(shell uname -s),SunOS)
 	NODE_PREBUILT_IMAGE =   18b094b0-eb01-11e5-80c1-175dac7ddf02
 endif
@@ -51,6 +52,18 @@ JS_FILES = \
 #
 COMMON_JS_FILES = \
 	lib/utils.js
+
+#
+# Files shipped to the compute node by the actor deployment mechanism:
+#
+ACTOR_JS_FILES = \
+	actor.js \
+	lib/cmd.js \
+	lib/conn.js \
+	lib/findstream.js \
+	lib/logsets.js \
+	lib/remember.js \
+	lib/worker.js
 
 #
 # Script files run via CNAPI ServerExecute to deploy the actor to compute
@@ -90,7 +103,8 @@ INSTALL_FILES = \
 
 CHECK_JS_FILES = \
 	$(JS_FILES) \
-	$(COMMON_JS_FILES)
+	$(COMMON_JS_FILES) \
+	$(addprefix actor/,$(ACTOR_JS_FILES))
 
 .PHONY: all
 all: $(NODE_EXEC) 0-npm-stamp
@@ -98,7 +112,6 @@ all: $(NODE_EXEC) 0-npm-stamp
 .PHONY: check
 check:: 0-npm-stamp
 	$(NODE_EXEC) node_modules/.bin/jshint $(CHECK_JS_FILES)
-	$(MAKE) -C actor check
 
 .PHONY: xxx
 xxx:
@@ -107,8 +120,14 @@ xxx:
 .PHONY: install
 install: $(INSTALL_DIRS) $(DESTDIR)$(PREFIX)/node_modules $(INSTALL_FILES)
 
-$(DESTDIR)$(PREFIX)/actor.tar.gz:
-	$(MAKE) -C actor DESTDIR=$(DESTDIR)/$(PREFIX) actor.tar.gz
+$(DESTDIR)$(PREFIX)/actor.tar.gz: $(ACTOR_JS_FILES:%=actor/%) \
+    $(COMMON_JS_FILES) $(DESTDIR)$(PREFIX)/bin/node \
+    $(DESTDIR)$(PREFIX)/node_modules
+	/usr/bin/tar cfz $@ \
+	    -C $(DESTDIR)$(PREFIX) node_modules \
+	    -C $(DESTDIR)$(PREFIX) bin/node \
+	    $(ACTOR_JS_FILES:%=-C $(TOP)/actor %) \
+	    $(COMMON_JS_FILES:%=-C $(TOP) %)
 
 $(INSTALL_DIRS):
 	mkdir -p $@
@@ -125,7 +144,9 @@ $(DESTDIR)$(PREFIX)/%.js: $(PWD)/%.js
 $(DESTDIR)$(PREFIX)/bin/node: $(NODE_EXEC)
 	cp $^ $@
 
-$(DESTDIR)$(PREFIX)/lib/lib%: $(NODE_EXEC)
+$(PWD)/node/lib/lib%: $(NODE_EXEC)
+
+$(DESTDIR)$(PREFIX)/lib/lib%: $(PWD)/node/lib/lib%
 	cp $^ $@
 
 $(DESTDIR)$(PREFIX)/smf/%.xml: $(PWD)/smf/manifests/%.xml.in
@@ -149,7 +170,6 @@ $(DESTDIR)$(PREFIX)/node_modules: 0-npm-stamp
 clean::
 	rm -rf $(PWD)/node_modules
 	rm -rf $(PWD)/proto
-	$(MAKE) -C actor DESTDIR=$(DESTDIR)/$(PREFIX) clean
 
 include ./tools/mk/Makefile.deps
 ifeq ($(shell uname -s),SunOS)
