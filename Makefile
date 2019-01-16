@@ -144,7 +144,7 @@ $(DESTDIR)$(PREFIX)/%.js: $(PWD)/%.js
 $(DESTDIR)$(PREFIX)/bin/node: $(NODE_EXEC)
 	cp $^ $@
 
-$(DESTDIR)$(PREFIX)/lib/lib%: $(PWD)/node/lib/lib%
+$(DESTDIR)$(PREFIX)/lib/lib%: $(NODE_INSTALL)/lib/lib%
 	cp $^ $@
 
 $(DESTDIR)$(PREFIX)/smf/%.xml: $(PWD)/smf/manifests/%.xml.in
