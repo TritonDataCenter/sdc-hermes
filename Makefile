@@ -118,7 +118,7 @@ xxx:
 	@GIT_PAGER= git grep "XXX" $(CHECK_JS_FILES)
 
 .PHONY: install
-install: $(NODE_EXEC) $(INSTALL_DIRS) $(DESTDIR)$(PREFIX)/node_modules $(INSTALL_FILES)
+install: 0-npm-stamp $(INSTALL_DIRS) $(DESTDIR)$(PREFIX)/node_modules $(INSTALL_FILES)
 
 $(DESTDIR)$(PREFIX)/actor.tar.gz: $(ACTOR_JS_FILES:%=actor/%) \
     $(COMMON_JS_FILES) $(DESTDIR)$(PREFIX)/bin/node \
@@ -144,8 +144,12 @@ $(DESTDIR)$(PREFIX)/%.js: $(PWD)/%.js
 $(DESTDIR)$(PREFIX)/bin/node: $(NODE_EXEC)
 	cp $^ $@
 
+$(NODE_INSTALL)/lib/libgcc_s.so.1: $(NODE_EXEC)
+
 $(DESTDIR)$(PREFIX)/lib/libgcc_s.so.1: $(NODE_INSTALL)/lib/libgcc_s.so.1
 	cp $^ $@
+
+$(NODE_INSTALL)/lib/libstdc++.so.6: $(NODE_EXEC)
 
 $(DESTDIR)$(PREFIX)/lib/libstdc++.so.6: $(NODE_INSTALL)/lib/libstdc++.so.6
 	cp $^ $@
