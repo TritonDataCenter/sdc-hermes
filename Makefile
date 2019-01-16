@@ -29,8 +29,6 @@ else
     NPM_EXEC=$(shell which npm)
     NODE_EXEC=$(shell which node)
 endif
-include ./tools/mk/Makefile.node_deps.defs
-include ./tools/mk/Makefile.smf.defs
 
 DESTDIR =		$(PWD)/proto
 
@@ -110,7 +108,7 @@ CHECK_JS_FILES = \
 all: $(NODE_EXEC) 0-npm-stamp
 
 .PHONY: check
-check: 0-npm-stamp
+check:: 0-npm-stamp
 	$(NODE_EXEC) node_modules/.bin/jshint $(CHECK_JS_FILES)
 
 .PHONY: xxx
@@ -180,7 +178,7 @@ $(DESTDIR)$(PREFIX)/node_modules: 0-npm-stamp
 	#gtar -xz -f $(NODE_TARBALL)
 	#[[ -f $(NODE_EXEC) ]] && touch $(NODE_EXEC)
 
-clean:
+clean::
 	rm -rf $(PWD)/node_modules
 	rm -rf $(PWD)/proto
 
@@ -192,4 +190,4 @@ include ./tools/mk/Makefile.deps
 ifeq ($(shell uname -s),SunOS)
 	include ./tools/mk/Makefile.node_prebuilt.targ
 endif
-include ./tools/mk/Makefile.node_deps.targ
+include ./tools/mk/Makefile.targ
