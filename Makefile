@@ -143,10 +143,10 @@ $(DESTDIR)$(PREFIX)/lib/%.js: $(PWD)/lib/%.js
 $(DESTDIR)$(PREFIX)/%.js: $(PWD)/%.js
 	cp $^ $@
 
-$(DESTDIR)$(PREFIX)/bin/node: $(PWD)/node/bin/node
+$(DESTDIR)$(PREFIX)/bin/node: $(PWD)/build/node/bin/node
 	cp $^ $@
 
-$(DESTDIR)$(PREFIX)/lib/lib%: $(PWD)/node/lib/lib%
+$(DESTDIR)$(PREFIX)/lib/lib%: $(PWD)/build/node/lib/lib%
 	cp $^ $@
 
 $(DESTDIR)$(PREFIX)/smf/%.xml: $(PWD)/smf/manifests/%.xml.in
