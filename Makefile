@@ -108,7 +108,7 @@ xxx:
 install: $(INSTALL_DIRS) $(DESTDIR)$(PREFIX)/node_modules $(INSTALL_FILES)
 
 $(DESTDIR)$(PREFIX)/actor.tar.gz:
-	$(MAKE) -C actor DESTDIR=$(DESTDIR)/$(PREFIX) $@
+	$(MAKE) -C actor DESTDIR=$(DESTDIR)/$(PREFIX) actor.tar.gz
 
 $(INSTALL_DIRS):
 	mkdir -p $@

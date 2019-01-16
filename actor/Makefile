@@ -56,6 +56,9 @@ all: $(NODE_EXEC) 0-npm-stamp
 check:: 0-npm-stamp
 	$(NODE_EXEC) node_modules/.bin/jshint $(ACTOR_JS_FILES)
 
+.PHONY: actor.tar.gz
+actor.tar.gz: $(DESTDIR)/actor.tar.gz
+
 $(DESTDIR)/actor.tar.gz: $(NODE_EXEC) 0-npm-stamp \
     $(ACTOR_JS_FILES) \
     $(COMMON_JS_FILES)
