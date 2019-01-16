@@ -144,7 +144,10 @@ $(DESTDIR)$(PREFIX)/%.js: $(PWD)/%.js
 $(DESTDIR)$(PREFIX)/bin/node: $(NODE_EXEC)
 	cp $^ $@
 
-$(DESTDIR)$(PREFIX)/lib/lib%: $(NODE_INSTALL)/lib/lib%
+$(DESTDIR)$(PREFIX)/lib/libgcc_s.so.1: $(NODE_INSTALL)/lib/libgcc_s.so.1
+	cp $^ $@
+
+$(DESTDIR)$(PREFIX)/lib/libstdc++.so.6: $(NODE_INSTALL)/lib/libstdc++.so.6
 	cp $^ $@
 
 $(DESTDIR)$(PREFIX)/smf/%.xml: $(PWD)/smf/manifests/%.xml.in
