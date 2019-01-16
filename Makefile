@@ -14,7 +14,7 @@ TOP =			$(PWD)
 # Use a build of node compiled to work in the global zone.
 #
 NODE_PREBUILT_VERSION = v6.15.1
-NODE_PREBUILT_TAG = gz
+NODE_PREBUILT_TAG = zone
 ifeq ($(shell uname -s),SunOS)
 	NODE_PREBUILT_IMAGE =   18b094b0-eb01-11e5-80c1-175dac7ddf02
 endif
@@ -166,17 +166,6 @@ $(DESTDIR)$(PREFIX)/sapi_manifests/%: $(PWD)/sapi_manifests/%
 $(DESTDIR)$(PREFIX)/node_modules: 0-npm-stamp
 	rm -rf $@
 	cp -r $(PWD)/node_modules $@
-
-#$(NODE_TARBALL):
-	#@echo "downloading sdcnode $(NODE_VARIANT) ..."
-	#mkdir -p $(@D)
-	#./tools/download_sdcnode $(NODE_IMAGE) $(NODE_VARIANT) $(@D)
-
-#$(NODE_EXEC): $(NODE_TARBALL)
-	#@echo "extracting node $(NODE_VERSION) ..."
-	#-rm -rf node
-	#gtar -xz -f $(NODE_TARBALL)
-	#[[ -f $(NODE_EXEC) ]] && touch $(NODE_EXEC)
 
 clean::
 	rm -rf $(PWD)/node_modules
