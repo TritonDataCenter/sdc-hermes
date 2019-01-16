@@ -63,6 +63,9 @@ ACTOR_JS_FILES = \
 	lib/remember.js \
 	lib/worker.js
 
+ACTOR_NODE = \
+	$(TOP)/actor/node/bin/node
+
 #
 # Script files run via CNAPI ServerExecute to deploy the actor to compute
 # nodes:
@@ -122,7 +125,8 @@ $(DESTDIR)$(PREFIX)/actor.tar.gz: $(ACTOR_JS_FILES:%=actor/%) \
     $(COMMON_JS_FILES) $(DESTDIR)$(PREFIX)/bin/node \
     $(DESTDIR)$(PREFIX)/lib/libgcc_s.so.1 \
     $(DESTDIR)$(PREFIX)/lib/libstdc++.so.6 \
-    $(DESTDIR)$(PREFIX)/node_modules
+    $(DESTDIR)$(PREFIX)/node_modules \
+    $(ACTOR_NODE)
 	/usr/bin/tar cfz $@ \
 	    -C $(DESTDIR)$(PREFIX) node_modules \
 	    -C $(DESTDIR)$(PREFIX) bin/node \
@@ -133,6 +137,9 @@ $(DESTDIR)$(PREFIX)/actor.tar.gz: $(ACTOR_JS_FILES:%=actor/%) \
 
 $(INSTALL_DIRS):
 	mkdir -p $@
+
+$(ACTOR_NODE):
+	$(MAKE) -C actor node/bin/node
 
 $(DESTDIR)$(PREFIX)/scripts/%: $(PWD)/scripts/%
 	cp $^ $@
@@ -170,10 +177,6 @@ $(DESTDIR)$(PREFIX)/node_modules: 0-npm-stamp
 clean::
 	rm -rf $(PWD)/node_modules
 	rm -rf $(PWD)/proto
-
-clobber: clean
-	rm -rf $(PWD)/downloads
-	rm -rf $(PWD)/node
 
 include ./tools/mk/Makefile.deps
 ifeq ($(shell uname -s),SunOS)
