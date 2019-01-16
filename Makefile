@@ -126,6 +126,8 @@ $(DESTDIR)$(PREFIX)/actor.tar.gz: $(ACTOR_JS_FILES:%=actor/%) \
 	/usr/bin/tar cfz $@ \
 	    -C $(DESTDIR)$(PREFIX) node_modules \
 	    -C $(DESTDIR)$(PREFIX) bin/node \
+	    -C $(DESTDIR)$(PREFIX) lib/libgcc_s.so.1 \
+	    -C $(DESTDIR)$(PREFIX) lib/libstdc++.so.6 \
 	    $(ACTOR_JS_FILES:%=-C $(TOP)/actor %) \
 	    $(COMMON_JS_FILES:%=-C $(TOP) %)
 
