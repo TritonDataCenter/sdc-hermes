@@ -118,7 +118,7 @@ xxx:
 	@GIT_PAGER= git grep "XXX" $(CHECK_JS_FILES)
 
 .PHONY: install
-install: $(INSTALL_DIRS) $(DESTDIR)$(PREFIX)/node_modules $(INSTALL_FILES)
+install: $(NODE_EXEC) $(INSTALL_DIRS) $(DESTDIR)$(PREFIX)/node_modules $(INSTALL_FILES)
 
 $(DESTDIR)$(PREFIX)/actor.tar.gz: $(ACTOR_JS_FILES:%=actor/%) \
     $(COMMON_JS_FILES) $(DESTDIR)$(PREFIX)/bin/node \
@@ -143,8 +143,6 @@ $(DESTDIR)$(PREFIX)/%.js: $(PWD)/%.js
 
 $(DESTDIR)$(PREFIX)/bin/node: $(NODE_EXEC)
 	cp $^ $@
-
-$(PWD)/node/lib/lib%: $(NODE_EXEC)
 
 $(DESTDIR)$(PREFIX)/lib/lib%: $(PWD)/node/lib/lib%
 	cp $^ $@
