@@ -10,8 +10,6 @@
 
 var mod_child = require('child_process');
 var mod_fs = require('fs');
-var mod_http = require('http');
-var mod_https = require('https');
 var mod_os = require('os');
 var mod_path = require('path');
 
@@ -20,6 +18,7 @@ var mod_backoff = require('backoff');
 var mod_jsprim = require('jsprim');
 var mod_manta = require('manta');
 var mod_vasync = require('vasync');
+var mod_yakaa = require('yakaa');
 
 var lib_utils = require('./lib/utils');
 var lib_conn = require('./lib/conn');
@@ -67,8 +66,6 @@ var GS = {
 	gs_shed: null,
 	gs_backoff: null,
 	gs_heartbeat_timeout: null,
-
-	gs_proxy: null,
 
 	gs_manta: {
 		agent: null,
@@ -337,19 +334,34 @@ handle_message(msg)
 		GS.gs_manta.user = msg.config.user;
 
 		/*
-		* We create a keepAlive Agent and give it to the Manta client
-		* for outbound requests.  If the URL is not obviously an
-		* insecure HTTP URL, we assume HTTPS.
+		 * We create a keepAlive Agent and give it to the Manta client
+		 * for outbound requests.  If the URL is not obviously an
+		 * insecure HTTP URL, we assume HTTPS.
+		 *
+		 * In order to funnel Manta requests through the hermes
+		 * proxy (since the GZ might not have external network), we
+		 * pass the appropriate proxy (determined above based on the
+		 * URL) to the Manta client for outbound requests.
+		 *
+		 * The use of "mod_yakaa" here is extremely unfortunate.
+		 * Previous versions of hermes used a hacked non-master version
+		 * of node-manta that hid this. When we updated node to a newer
+		 * version, this hack had to be moved to this code. Eventually
+		 * this needs to be removed as yakaa existed to backport node
+		 * v0.12 keepalive support for node v0.10, has not been updated
+		 * in more than 4 years, and was never the right place to include
+		 * proxy support.
+		 *
 		 */
 		if (mod_jsprim.startsWith(msg.config.url, 'http:')) {
-			GS.gs_proxy = msg.http_proxy;
-			GS.gs_manta.agent = new mod_http.Agent({
-				keepAlive: true
+			GS.gs_manta.agent = new mod_yakaa({
+				keepAlive: true,
+				proxy: msg.http_proxy
 			});
 		} else {
-			GS.gs_proxy = msg.https_proxy;
-			GS.gs_manta.agent = new mod_https.Agent({
-				keepAlive: true
+			GS.gs_manta.agent = new mod_yakaa.SSL({
+				keepAlive: true,
+				proxy: msg.https_proxy
 			});
 		}
 
@@ -363,14 +375,7 @@ handle_message(msg)
 			url: msg.config.url,
 			connectTimeout: msg.config.connect_timeout,
 			retry: false,
-			agent: GS.gs_manta.agent,
-			/*
-			* In order to funnel Manta requests through the hermes
-			* proxy, we pass the appropriate proxy (determined above
-			* based on the URL) to the Manta client for outbound
-			* requests.
-			*/
-			proxy: GS.gs_proxy
+			agent: GS.gs_manta.agent
 		});
 		break;
 

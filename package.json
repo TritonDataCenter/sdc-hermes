@@ -18,7 +18,8 @@
     "sdc-clients": "^10.2.0",
     "vasync": "^1.6.4",
     "verror": "^1.9.0",
-    "watershed": "^0.3.3"
+    "watershed": "^0.3.3",
+    "yakaa": "https://github.com/jclulow/yakaa.git#a144f715f413a13549d320d0c6156675994a03fb"
   },
   "devDependencies": {
     "jshint": "^2.5.6"
