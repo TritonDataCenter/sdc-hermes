@@ -23,6 +23,7 @@ endif
 
 # Included definitions
 include ./tools/mk/Makefile.defs
+include ./tools/mk/Makefile.node_modules.defs
 ifeq ($(shell uname -s),SunOS)
     include ./tools/mk/Makefile.node_prebuilt.defs
 else
@@ -107,10 +108,10 @@ CHECK_JS_FILES = \
 	$(addprefix actor/,$(ACTOR_JS_FILES))
 
 .PHONY: all
-all: $(NODE_EXEC) 0-npm-stamp
+all: $(NODE_EXEC) $(STAMP_NODE_MODULES)
 
 .PHONY: check
-check:: 0-npm-stamp
+check:: $(STAMP_NODE_MODULES)
 	$(NODE_EXEC) node_modules/.bin/jshint $(CHECK_JS_FILES)
 
 .PHONY: xxx
@@ -118,7 +119,7 @@ xxx:
 	@GIT_PAGER= git grep "XXX" $(CHECK_JS_FILES)
 
 .PHONY: install
-install: 0-npm-stamp $(INSTALL_DIRS) $(DESTDIR)$(PREFIX)/node_modules $(INSTALL_FILES)
+install: $(STAMP_NODE_MODULES) $(INSTALL_DIRS) $(DESTDIR)$(PREFIX)/node_modules $(INSTALL_FILES)
 
 $(DESTDIR)$(PREFIX)/actor.tar.gz: $(ACTOR_JS_FILES:%=actor/%) \
     $(COMMON_JS_FILES) $(DESTDIR)$(PREFIX)/bin/node \
@@ -165,15 +166,6 @@ $(DESTDIR)$(PREFIX)/sapi_manifests/%: $(PWD)/sapi_manifests/%
 	@mkdir -p `dirname $@`
 	cp $^ $@
 
-0-npm-stamp: $(NODE_EXEC) package.json
-	rm -rf $(PWD)/node_modules
-	PATH=$(PWD)/node/bin:$(PATH) NPM_CONFIG_CACHE= $(NPM_EXEC) install
-	touch $@
-
-$(DESTDIR)$(PREFIX)/node_modules: 0-npm-stamp
-	rm -rf $@
-	cp -r $(PWD)/node_modules $@
-
 clean::
 	rm -rf $(PWD)/node_modules
 	rm -rf $(PWD)/proto
@@ -182,4 +174,5 @@ include ./tools/mk/Makefile.deps
 ifeq ($(shell uname -s),SunOS)
 	include ./tools/mk/Makefile.node_prebuilt.targ
 endif
+include ./tools/mk/Makefile.node_modules.targ
 include ./tools/mk/Makefile.targ
