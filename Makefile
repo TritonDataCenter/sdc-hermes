@@ -166,8 +166,13 @@ $(DESTDIR)$(PREFIX)/sapi_manifests/%: $(PWD)/sapi_manifests/%
 	@mkdir -p `dirname $@`
 	cp $^ $@
 
+$(DESTDIR)$(PREFIX)/node_modules: $(STAMP_NODE_MODULES)
+	rm -rf $@
+	cp -r $(PWD)/node_modules $@
+
 clean::
 	rm -rf $(PWD)/node_modules
+	rm -rf $(PWD)/make_stamps/node-modules
 	rm -rf $(PWD)/proto
 
 include ./tools/mk/Makefile.deps
