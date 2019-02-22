@@ -4,4 +4,6 @@ bin/node
 node/
 proto/
 downloads/
+/build
+/make_stamps
 .*.sw?
