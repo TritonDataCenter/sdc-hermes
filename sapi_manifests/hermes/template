@@ -11,6 +11,9 @@
   "cnapi": {
     "url": "http://{{{cnapi_domain}}}"
   },
+  "mahi": {
+    "url": "http://{{{mahi_domain}}}"
+  },
   "manta": {
     "user": "{{{SDC_MANTA_USER}}}",
     "url": "{{{SDC_MANTA_URL}}}",

@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (c) 2014, Joyent, Inc.
+ * Copyright (c) 2019, Joyent, Inc.
  */
 
 var mod_fs = require('fs');
@@ -137,6 +137,11 @@ validate_config(cfg)
 	if (!cfg)
 		return (false);
 
+	if (!cfg.mahi) {
+		GS.gs_log.info('configuration missing "mahi"');
+		return (false);
+	}
+
 	if (!cfg.manta) {
 		GS.gs_log.info('configuration missing "manta"');
 		return (false);
@@ -252,7 +257,8 @@ configure_server(server)
 		https_proxy: 'http://' + GS.gs_config.admin_ip +
 		    ':3128',
 		http_proxy: 'http://' + GS.gs_config.admin_ip +
-		    ':3128'
+		    ':3128',
+		mahi: GS.gs_config.mahi
 	});
 
 	server.configured(true);

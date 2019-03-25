@@ -16,6 +16,7 @@ var mod_path = require('path');
 var mod_assert = require('assert-plus');
 var mod_backoff = require('backoff');
 var mod_jsprim = require('jsprim');
+var mod_mahi = require('mahi');
 var mod_manta = require('manta');
 var mod_vasync = require('vasync');
 var mod_yakaa = require('yakaa');
@@ -66,6 +67,10 @@ var GS = {
 	gs_shed: null,
 	gs_backoff: null,
 	gs_heartbeat_timeout: null,
+
+	gs_mahi: {
+		client: null
+	},
 
 	gs_manta: {
 		agent: null,
@@ -321,15 +326,23 @@ handle_message(msg)
 		log.info({
 			config: msg.config,
 			http_proxy: msg.http_proxy,
-			https_proxy: msg.https_proxy
+			https_proxy: msg.https_proxy,
+			mahi: msg.mahi
 		}, 'received manta configuration from server');
 
 		if (GS.gs_manta.client) {
 			GS.gs_manta.client.close();
 		}
+		if (GS.gs_mahi.client) {
+			GS.gs_mahi.client.close();
+		}
 		if (GS.gs_manta.agent) {
 			GS.gs_manta.agent.destroy();
 		}
+
+		GS.gs_mahi.client = mod_mahi.createClient({
+			url: msg.mahi.url
+		});
 
 		GS.gs_manta.user = msg.config.user;
 
@@ -491,7 +504,8 @@ start_worker(logset_name)
 			logset_name: logset_name
 		}),
 		datacenter: GS.gs_dcname,
-		nodename: GS.gs_sysinfo['UUID']
+		nodename: GS.gs_sysinfo['UUID'],
+		mahi: GS.gs_mahi.client
 	});
 
 	/*

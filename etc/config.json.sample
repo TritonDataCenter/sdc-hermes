@@ -10,6 +10,9 @@
   "cnapi": {
     "url": "http://cnapi.sf1.sf1.joyent.com"
   },
+  "mahi": {
+    "url": "http://mahi.sf1.sf1.joyent.com"
+  },
   "manta": {
     "url": "https://us-east.manta.joyent.com",
     "user": "manta_username",
