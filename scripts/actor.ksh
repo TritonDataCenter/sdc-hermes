@@ -6,7 +6,7 @@
 #
 
 #
-# Copyright (c) 2014, Joyent, Inc.
+# Copyright (c) 2019, Joyent, Inc.
 #
 
 set -o errexit
@@ -21,13 +21,15 @@ DIGEST=/usr/bin/digest
 SVCCFG=/usr/sbin/svccfg
 SVCADM=/usr/sbin/svcadm
 
-if [[ $SMF_FMRI != "svc:/smartdc/hermes-actor:default" ]]; then
+SERVICE_NAME=$1
+
+if [[ $SMF_FMRI != "svc:/smartdc/${SERVICE_NAME}:default" ]]; then
 	printf "ERROR: not running under correct SMF service\n" >&2
 	exit $SMF_EXIT_ERR_NOSMF
 fi
 
-ACTOR_DIR="/opt/smartdc/hermes-actor"
-TMPFILE="/tmp/.hermes-actor.$$.tar.gz"
+ACTOR_DIR="/opt/smartdc/${SERVICE_NAME}"
+TMPFILE="/tmp/.${SERVICE_NAME}.$$.tar.gz"
 DEPLOY_DIR="${ACTOR_DIR}/deploy"
 VERFILE="${DEPLOY_DIR}/.version"
 
@@ -77,6 +79,6 @@ done
 # Start the actor
 #
 cd $DEPLOY_DIR
-${DEPLOY_DIR}/bin/node ${DEPLOY_DIR}/actor.js &
+${DEPLOY_DIR}/bin/node ${DEPLOY_DIR}/actor.js $SERVICE_NAME &
 
 # vim: set ts=8 sts=8 sw=8 noet:

@@ -593,7 +593,8 @@ resched()
 function
 main()
 {
-	lib_utils.create_logger(GS, 'hermes-actor');
+	var service_name = process.argv[2];
+	lib_utils.create_logger(GS, service_name);
 
 	mod_vasync.pipeline({
 		funcs: [

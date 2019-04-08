@@ -7,11 +7,11 @@
 -->
 
 <!--
-    Copyright (c) 2014, Joyent, Inc.
+    Copyright (c) 2019, Joyent, Inc.
 -->
 
-<service_bundle type="manifest" name="smartdc-hermes-actor">
-  <service name="smartdc/hermes-actor" type="service" version="1">
+<service_bundle type="manifest" name="smartdc-%%AGENT_NAME%%">
+  <service name="smartdc/%%AGENT_NAME%%" type="service" version="1">
 
     <create_default_instance enabled="false"/>
     <single_instance/>
@@ -20,7 +20,7 @@
       <service_fmri value="svc:/milestone/multi-user:default"/>
     </dependency>
 
-    <exec_method type="method" name="start" exec="/opt/smartdc/hermes-actor/method.ksh" timeout_seconds="600">
+    <exec_method type="method" name="start" exec="/opt/smartdc/%%AGENT_NAME%%/method.ksh %%AGENT_NAME%%" timeout_seconds="600">
       <method_context working_directory="/tmp"/>
     </exec_method>
 

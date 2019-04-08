@@ -6,7 +6,7 @@
 #
 
 #
-# Copyright (c) 2014, Joyent, Inc.
+# Copyright (c) 2019, Joyent, Inc.
 #
 
 #
@@ -22,8 +22,16 @@ SVCCFG=/usr/sbin/svccfg
 SVCPROP=/usr/bin/svcprop
 CURL=/usr/bin/curl
 
-ACTOR_DIR="/opt/smartdc/hermes-actor"
-FMRI="svc:/smartdc/hermes-actor:default"
+SERVICE_NAME="%%SERVICE_NAME%%"
+
+if [ "$SERVICE_NAME" == "hermes" ]; then
+	AGENT_NAME="hermes-actor"
+else
+	AGENT_NAME="logarchiver-agent"
+fi
+
+ACTOR_DIR="/opt/smartdc/${AGENT_NAME}"
+FMRI="svc:/smartdc/${AGENT_NAME}:default"
 
 SERVER="%%ENDPOINT%%"
 SMF_REVISION="%%SMF_REVISION%%"

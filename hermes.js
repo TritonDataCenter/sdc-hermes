@@ -192,8 +192,13 @@ bootstrap_server(server)
 		server: server.uuid()
 	}, 'deploying actor');
 
+	var agent_name = GS.gs_config.service_name === 'hermes' ?
+		'hermes-actor' : 'logarchiver-agent';
+
 	var script = GS.gs_scriptmgr.load('bootstrap.ksh', {
 		ENDPOINT: GS.gs_config.admin_ip + ':' + GS.gs_config.port,
+		SERVICE_NAME: GS.gs_config.service_name,
+		AGENT_NAME: agent_name,
 		SMF_REVISION: 'HERMES-1'
 	});
 	server.execute([], {}, script, function (err, res) {
@@ -331,6 +336,10 @@ main()
 		return;
 	}
 
+	if (GS.gs_config.service_name === 'sdc') {
+		GS.gs_config.service_name = 'hermes';
+	}
+
 	log.info('configuration valid; starting...');
 
 	log.debug('loading script manager');
@@ -354,7 +363,7 @@ main()
 	GS.gs_httpserver = new lib_httpserver.HttpServer(log.child({
 		component: 'HttpServer'
 	}), GS.gs_config.admin_ip, GS.gs_config.port, GS.gs_tarstamp,
-	    GS.gs_scriptmgr);
+	    GS.gs_scriptmgr, GS.gs_config.service_name);
 
 	GS.gs_httpserver.on('shed', function (shed) {
 		GS.gs_servermgr.accept(shed);
