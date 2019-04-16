@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (c) 2014, Joyent, Inc.
+ * Copyright (c) 2019, Joyent, Inc.
  */
 
 var mod_fs = require('fs');
@@ -42,6 +42,7 @@ LogsetWorker(options)
 
 	self.lsw_log = options.log;
 	self.lsw_manta = options.manta;
+	self.lsw_mahi = options.mahi;
 
 	self.lsw_logset = options.logset;
 
@@ -253,52 +254,64 @@ _disp()
 	/*
 	 * Derive the path that we would upload this file to, in Manta:
 	 */
-	var manta_path = lib_logsets.local_to_manta_path(self.lsw_manta_user,
-	    self.lsw_logset, inf.path, self.lsw_datacenter, self.lsw_nodename);
-
-	/*
-	 * If we are not attempting to delete the file, an act that may cause
-	 * permanent data loss if mishandled, we can trust our memory of a
-	 * recent verification.
-	 */
-	if (!_delete && REMEMBER.uploaded_already(inf.real_path, manta_path,
-	    inf.mtime.valueOf())) {
-		self.lsw_log.trace({
-			file: inf
-		}, 'upload remembered; skipping until deletion required');
-		_swtch();
-		return;
-	}
-
-	self.lsw_log.debug({
-		file: inf,
-		manta_path: manta_path,
-		do_delete: _delete
-	}, 'archiving log file');
-
-	self._manta_upload(inf, manta_path, _delete, function (err) {
+	lib_logsets.uuid_to_account(self.lsw_logset, inf.path, self.lsw_mahi,
+	function getAccount(err, customer) {
 		if (err) {
-			self.lsw_log.error({
-				err: err
-			}, 'failed to upload file to Manta');
-			setTimeout(function () {
-				/*
-				 * Inject a pause, and then continue...
-				 */
-				_swtch();
-			}, 1000);
+		    self.lsw_log.error({
+			err: err
+		    }, 'failed to translate customer UUID to Manta account');
+		    _swtch();
+		    return;
+		}
+
+		var manta_path = lib_logsets.local_to_manta_path(self.lsw_manta_user,
+		    self.lsw_logset, inf.path, self.lsw_datacenter, self.lsw_nodename,
+		    customer);
+
+		/*
+		 * If we are not attempting to delete the file, an act that may cause
+		 * permanent data loss if mishandled, we can trust our memory of a
+		 * recent verification.
+		 */
+		if (!_delete && REMEMBER.uploaded_already(inf.real_path, manta_path,
+		    inf.mtime.valueOf())) {
+			self.lsw_log.trace({
+				file: inf
+			}, 'upload remembered; skipping until deletion required');
+			_swtch();
 			return;
 		}
 
-		/*
-		 * We have either uploaded this file, or verified that it has
-		 * previously been uploaded with identical contents.  Cache
-		 * this to avoid needing to re-verify in the next enumeration:
-		 */
-		REMEMBER.mark_uploaded(inf.real_path, manta_path,
-		    inf.mtime.valueOf());
-		_swtch();
-		return;
+		self.lsw_log.debug({
+			file: inf,
+			manta_path: manta_path,
+			do_delete: _delete
+		}, 'archiving log file');
+
+		self._manta_upload(inf, manta_path, _delete, function (err) {
+			if (err) {
+				self.lsw_log.error({
+					err: err
+				}, 'failed to upload file to Manta');
+				setTimeout(function () {
+					/*
+					 * Inject a pause, and then continue...
+					 */
+					_swtch();
+				}, 1000);
+				return;
+			}
+
+			/*
+			 * We have either uploaded this file, or verified that it has
+			 * previously been uploaded with identical contents.  Cache
+			 * this to avoid needing to re-verify in the next enumeration:
+			 */
+			REMEMBER.mark_uploaded(inf.real_path, manta_path,
+			    inf.mtime.valueOf());
+			_swtch();
+			return;
+		});
 	});
 };
 

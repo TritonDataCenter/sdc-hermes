@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (c) 2014, Joyent, Inc.
+ * Copyright (c) 2019, Joyent, Inc.
  */
 
 
@@ -112,9 +112,33 @@ parse_date(logset, logpath)
 	return (null);
 }
 
+function
+uuid_to_account(logset, logpath, mahi, callback)
+{
+	var m = logset.regex.exec(logpath);
+
+	if (!logset.customer_uuid) {
+		callback();
+		return;
+	}
+
+	var position = logset.customer_uuid.slice(1);
+	var customer_uuid = m[position];
+
+	mahi.getAccountById(customer_uuid, function onAccount(err, response) {
+		if (err) {
+		    callback(err);
+		    return;
+		}
+
+		callback(null, response.account.login);
+	});
+}
+
 /*
  * Substitute:
  *   %u --> Manta User
+ *   %U --> Manta Customer Username
  *   %d --> Datacentre Name
  *   %z --> Zone Name
  *   %n --> Node Name (or Zone Name for a Zone)
@@ -125,7 +149,7 @@ parse_date(logset, logpath)
  *      --> UTC Date/Time from (possibly adjusted) date_string matches
  */
 function
-local_to_manta_path(manta_user, logset, logpath, datacenter, nodename)
+local_to_manta_path(manta_user, logset, logpath, datacenter, nodename, customer)
 {
 	var m = logset.regex.exec(logpath);
 	var indate = parse_date(logset, logpath);
@@ -186,6 +210,10 @@ local_to_manta_path(manta_user, logset, logpath, datacenter, nodename)
 				break;
 			case 'u':
 				out += manta_user;
+				state = null;
+				break;
+			case 'U':
+				out += customer;
 				state = null;
 				break;
 			case 'r':
@@ -280,7 +308,8 @@ module.exports = {
 	list_logsets: list_logsets,
 	local_to_manta_path: local_to_manta_path,
 	parse_date: parse_date,
-	ready: ready
+	ready: ready,
+	uuid_to_account: uuid_to_account
 };
 
 /* vim: set syntax=javascript ts=8 sts=8 sw=8 noet: */
