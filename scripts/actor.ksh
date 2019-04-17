@@ -6,7 +6,7 @@
 #
 
 #
-# Copyright (c) 2014, Joyent, Inc.
+# Copyright (c) 2019, Joyent, Inc.
 #
 
 set -o errexit
@@ -15,19 +15,18 @@ set -o pipefail
 . /lib/svc/share/smf_include.sh
 
 CURL=/usr/bin/curl
-GUNZIP=/usr/bin/gunzip
 TAR=/usr/bin/tar
 DIGEST=/usr/bin/digest
 SVCCFG=/usr/sbin/svccfg
 SVCADM=/usr/sbin/svcadm
 
-if [[ $SMF_FMRI != "svc:/smartdc/hermes-actor:default" ]]; then
+if [[ $SMF_FMRI != "svc:/smartdc/%%AGENT_NAME%%:default" ]]; then
 	printf "ERROR: not running under correct SMF service\n" >&2
 	exit $SMF_EXIT_ERR_NOSMF
 fi
 
-ACTOR_DIR="/opt/smartdc/hermes-actor"
-TMPFILE="/tmp/.hermes-actor.$$.tar.gz"
+ACTOR_DIR="/opt/smartdc/%%AGENT_NAME%%"
+TMPFILE="/tmp/.%%AGENT_NAME%%.$$.tar.gz"
 DEPLOY_DIR="${ACTOR_DIR}/deploy"
 VERFILE="${DEPLOY_DIR}/.version"
 

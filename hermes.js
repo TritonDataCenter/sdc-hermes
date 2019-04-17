@@ -112,6 +112,10 @@ read_config()
 		GS.gs_log.level(process.env.LOG_LEVEL || cfg.log_level ||
 		    mod_bunyan.INFO);
 
+		if (cfg.service_name && cfg.service_name === 'sdc') {
+			cfg.service_name = 'hermes';
+		}
+
 		/*
 		 * Validate the configuration before returning it:
 		 */
@@ -156,6 +160,18 @@ validate_config(cfg)
 		}
 	}
 
+	if (!cfg.service_name) {
+		GS.gs_log.info('configuration missing "service_name"');
+		return(false);
+	}
+
+	var valid_service = cfg.service_name === 'hermes' ||
+		cfg.service_name === 'logarchiver';
+
+	mod_assert.ok(valid_service, 'service_name must be "hermes" or ' +
+		'"logarchiver"');
+
+
 	var check_number = function check_number(name) {
 		if (!cfg[name] || typeof (cfg[name]) !== 'number' ||
 		    isNaN(cfg[name])) {
@@ -194,6 +210,7 @@ bootstrap_server(server)
 
 	var script = GS.gs_scriptmgr.load('bootstrap.ksh', {
 		ENDPOINT: GS.gs_config.admin_ip + ':' + GS.gs_config.port,
+		AGENT_NAME: GS.gs_config.agent_name,
 		SMF_REVISION: 'HERMES-1'
 	});
 	server.execute([], {}, script, function (err, res) {
@@ -351,10 +368,12 @@ main()
 	GS.gs_servermgr.deployed_version(GS.gs_tarstamp);
 
 	log.debug('starting http server');
+	GS.gs_config.agent_name = GS.gs_config.service_name === 'hermes' ?
+		'hermes-actor' : 'logarchiver-agent';
 	GS.gs_httpserver = new lib_httpserver.HttpServer(log.child({
 		component: 'HttpServer'
 	}), GS.gs_config.admin_ip, GS.gs_config.port, GS.gs_tarstamp,
-	    GS.gs_scriptmgr);
+	    GS.gs_scriptmgr, GS.gs_config.agent_name);
 
 	GS.gs_httpserver.on('shed', function (shed) {
 		GS.gs_servermgr.accept(shed);
