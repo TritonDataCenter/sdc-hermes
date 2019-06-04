@@ -8,17 +8,18 @@
  * Copyright (c) 2019, Joyent, Inc.
  */
 
-var mod_fs = require('fs');
-var mod_path = require('path');
-var mod_crypto = require('crypto');
-
 var mod_assert = require('assert-plus');
-var mod_vasync = require('vasync');
+var mod_crypto = require('crypto');
+var mod_fs = require('fs');
+var mod_jsprim = require('jsprim');
 var mod_once = require('once');
+var mod_path = require('path');
+var mod_vasync = require('vasync');
 var mod_verror = require('verror');
 
 var lib_logsets = require('./logsets');
 var lib_findstream = require('./findstream');
+var lib_listglob = require('./listglob');
 var lib_remember = require('./remember');
 
 var VError = mod_verror.VError;
@@ -101,6 +102,7 @@ LogsetWorker.prototype.run = function
 run(callback)
 {
 	var self = this;
+	var search_dirs = mod_jsprim.deepCopy(self.lsw_logset.search_dirs);
 
 	mod_assert.ok(!self.lsw_started, 'cannot run() a worker twice');
 	self.lsw_started = true;
@@ -112,18 +114,53 @@ run(callback)
 	self.lsw_end_callback = callback;
 
 	/*
-	 * Add zoneroot prefix to search directories if we're looking
-	 * at the non-global zone.
+	 * If we're not using a search_dirs_pattern, skip this part.
 	 */
-	var adjdirs = [];
-	for (var i = 0; i < self.lsw_logset.search_dirs.length; i++) {
-		adjdirs.push(mod_path.join(self.lsw_path_prefix,
-		    self.lsw_logset.search_dirs[i]));
+	if (!self.lsw_logset.hasOwnProperty('search_dirs_pattern')) {
+		do_find();
+		return;
 	}
 
-	self.lsw_barrier.start('find');
-	var find = new lib_findstream.FindStream(adjdirs);
+	lib_listglob.list_glob(self.lsw_logset.search_dirs_pattern,
+	function on_list(err, matches) {
+		if (err) {
+			self.lsw_log.error({
+				err: err
+			}, 'find stream error');
+			callback(err);
+			return;
+		}
 
+		for (var idx in matches) {
+			if (search_dirs.indexOf(matches[idx]) === -1)
+			{
+				search_dirs.push(matches[idx]);
+			}
+		}
+
+		do_find();
+	});
+
+	function do_find() {
+		/*
+		 * Add zoneroot prefix to search directories if we're
+		 * looking at the non-global zone.
+		 */
+		var adjdirs = [];
+		for (var i = 0; i < search_dirs.length; i++) {
+			adjdirs.push(mod_path.join(self.lsw_path_prefix,
+			    search_dirs[i]));
+		}
+		self.lsw_barrier.start('find');
+		self._find(adjdirs);
+	}
+};
+
+
+LogsetWorker.prototype._find = function _find(adjdirs) {
+	mod_assert.arrayOfString(adjdirs, 'adjdirs');
+	var self = this;
+	var find = new lib_findstream.FindStream(adjdirs);
 	find.on('error', function (err) {
 		/*
 		 * XXX It's possible that there's a class of error we can
@@ -252,6 +289,17 @@ _disp()
 	var _delete = (now >= delete_after);
 
 	/*
+	 * We want to upload files by default, unless the logset specifies
+	 * no_upload as being true.
+	 */
+	var _upload = true;
+	if (self.lsw_logset.no_upload === true) {
+		self.lsw_log.debug({ file: inf },
+		    'skipping upload for file because \'no_upload\' specified');
+		_upload = false;
+	}
+
+	/*
 	 * Derive the path that we would upload this file to, in Manta:
 	 */
 	lib_logsets.uuid_to_account(self.lsw_logset, inf.path, self.lsw_mahi,
@@ -318,7 +366,7 @@ _disp()
 function
 pl_local_md5(t, next)
 {
-	if (t.t_cancel) {
+	if (t.t_cancel || !t.t_do_upload) {
 		next();
 		return;
 	}
@@ -346,7 +394,7 @@ pl_local_md5(t, next)
 function
 pl_manta_info(t, next)
 {
-	if (t.t_cancel) {
+	if (t.t_cancel || !t.t_do_upload) {
 		next();
 		return;
 	}
@@ -369,7 +417,7 @@ pl_manta_info(t, next)
 function
 pl_manta_mkdirp(t, next)
 {
-	if (t.t_cancel) {
+	if (t.t_cancel || !t.t_do_upload) {
 		next();
 		return;
 	}
@@ -393,7 +441,7 @@ pl_manta_mkdirp(t, next)
 function
 pl_manta_put(t, next)
 {
-	if (t.t_cancel) {
+	if (t.t_cancel || !t.t_do_upload) {
 		next();
 		return;
 	}
@@ -402,6 +450,7 @@ pl_manta_put(t, next)
 
 	mod_assert.string(t.t_md5_local, 'md5_local');
 	mod_assert.number(t.t_file.size, 'file.size');
+	mod_assert.strictEqual(t.t_do_upload, true);
 
 	var opts = {
 		md5: t.t_md5_local,
@@ -462,7 +511,7 @@ pl_manta_put(t, next)
 function
 pl_compare_hash(t, next)
 {
-	if (t.t_cancel) {
+	if (t.t_cancel || !t.t_do_upload) {
 		next();
 		return;
 	}
@@ -491,9 +540,11 @@ pl_local_rm(t, next)
 		return;
 	}
 
-	mod_assert.string(t.t_md5_remote);
-	mod_assert.string(t.t_md5_local);
-	mod_assert.strictEqual(t.t_md5_remote, t.t_md5_local);
+	if (t.t_do_upload) {
+		mod_assert.string(t.t_md5_remote);
+		mod_assert.strictEqual(t.t_md5_remote, t.t_md5_local);
+		mod_assert.string(t.t_md5_local);
+	}
 	mod_assert.strictEqual(t.t_do_delete, true);
 
 	mod_fs.unlink(t.t_file.real_path, function (err) {
@@ -517,8 +568,13 @@ pl_local_rm(t, next)
 }
 
 LogsetWorker.prototype._manta_upload = function
-_manta_upload(file, manta_path, _delete, next)
+_manta_upload(file, manta_path, _delete, _upload, next)
 {
+	mod_assert.object(file, 'file');
+	mod_assert.string(manta_path, 'manta_path');
+	mod_assert.bool(_delete, '_delete');
+	mod_assert.bool(_upload, '_upload');
+
 	var self = this;
 
 	mod_assert.ok(!self.lsw_manta_task, '!lsw_manta_task');
@@ -532,6 +588,7 @@ _manta_upload(file, manta_path, _delete, next)
 		t_manta_path: manta_path,
 		t_file: file,
 		t_do_delete: _delete,
+		t_do_upload: _upload,
 		t_md5_remote: null,
 		t_md5_local: null,
 		t_cancel: self.lsw_cancel

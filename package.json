@@ -1,6 +1,6 @@
 {
   "name": "hermes",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Centralised tool to upload SDC logs to Manta",
   "main": "hermes.js",
   "author": "Joshua M. Clulow <jmc@joyent.com>",
