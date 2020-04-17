@@ -427,7 +427,7 @@ pl_manta_info(t, next)
 function
 pl_manta_mkdirp(t, next)
 {
-	if (t.t_cancel || !t.t_do_upload) {
+	if (t.t_cancel || !t.t_do_upload || t.t_manta_path.includes("/buckets/")) {
 		next();
 		return;
 	}
@@ -465,13 +465,6 @@ pl_manta_put(t, next)
 	var opts = {
 		md5: t.t_md5_local,
 		size: t.t_file.size,
-		headers: {
-			/*
-			 * HTTP Precondition prevents replacement of a file
-			 * if we're racing with another uploader:
-			 */
-			'if-match': '""'
-		}
 	};
 
 	var finstr = mod_fs.createReadStream(t.t_file.real_path);
