@@ -336,7 +336,7 @@ _disp()
 			do_delete: _delete
 		}, 'archiving log file');
 
-		self._manta_upload(inf, manta_path, _delete, function (err) {
+		self._manta_upload(inf, manta_path, _delete, _upload, function (err) {
 			if (err) {
 				self.lsw_log.error({
 					err: err
