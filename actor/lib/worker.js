@@ -417,7 +417,7 @@ pl_manta_info(t, next)
 function
 pl_manta_mkdirp(t, next)
 {
-	if (t.t_cancel || !t.t_do_upload || t.t_manta_path.includes("/buckets/")) {
+	if (t.t_cancel || !t.t_do_upload || t.t_manta_path.includes('/buckets/')) {
 		next();
 		return;
 	}
