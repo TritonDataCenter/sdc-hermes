@@ -62,6 +62,7 @@ ACTOR_JS_FILES = \
 	lib/cmd.js \
 	lib/conn.js \
 	lib/findstream.js \
+        lib/listglob.js \
 	lib/logsets.js \
 	lib/remember.js \
 	lib/worker.js
