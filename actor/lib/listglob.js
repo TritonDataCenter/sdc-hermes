@@ -16,8 +16,6 @@ var mod_child = require('child_process');
 var mod_verror = require('verror');
 var mod_assert = require('assert-plus');
 
-var LS = '/usr/bin/ls';
-
 function list_glob(pattern, callback) {
 	mod_assert.string(pattern, 'pattern');
 	mod_assert.func(callback, 'callback');

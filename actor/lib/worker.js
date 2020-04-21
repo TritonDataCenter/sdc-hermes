@@ -336,7 +336,7 @@ _disp()
 			do_delete: _delete
 		}, 'archiving log file');
 
-		self._manta_upload(inf, manta_path, _delete, function (err) {
+		self._manta_upload(inf, manta_path, _delete, _upload, function (err) {
 			if (err) {
 				self.lsw_log.error({
 					err: err
@@ -417,7 +417,7 @@ pl_manta_info(t, next)
 function
 pl_manta_mkdirp(t, next)
 {
-	if (t.t_cancel || !t.t_do_upload || t.t_manta_path.includes("/buckets/")) {
+	if (t.t_cancel || !t.t_do_upload || t.t_manta_path.includes('/buckets/')) {
 		next();
 		return;
 	}
