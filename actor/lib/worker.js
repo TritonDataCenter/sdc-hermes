@@ -300,6 +300,16 @@ _disp()
 	}
 
 	/*
+	 * Discontinue upload of empty log files (TRITON-2128)
+	 */
+	var file_size = inf.size.valueOf();
+	if (file_size === 0) {
+		self.lsw_log.debug({ file: inf },
+		    'skipping upload for file because it is empty');
+		_upload = false;
+	}
+
+	/*
 	 * Derive the path that we would upload this file to, in Manta:
 	 */
 	lib_logsets.uuid_to_account(self.lsw_logset, inf.path, self.lsw_mahi,
