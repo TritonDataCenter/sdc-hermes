@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (c) 2019, Joyent, Inc.
+ * Copyright (c) 2020, Joyent, Inc.
  */
 
 var mod_assert = require('assert-plus');
@@ -296,6 +296,16 @@ _disp()
 	if (self.lsw_logset.no_upload === true) {
 		self.lsw_log.debug({ file: inf },
 		    'skipping upload for file because \'no_upload\' specified');
+		_upload = false;
+	}
+
+	/*
+	 * Discontinue upload of empty log files (TRITON-2128)
+	 */
+	var file_size = inf.size.valueOf();
+	if (file_size === 0) {
+		self.lsw_log.debug({ file: inf },
+		    'skipping upload for file because it is empty');
 		_upload = false;
 	}
 
