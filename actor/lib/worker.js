@@ -484,7 +484,7 @@ pl_manta_put(t, next)
 	 * Also skip client's encoding of buckets object path
 	 * to avoid double-encoding slashes in object name.
 	 */
-	if (t.t_manta_path.includes("/buckets/")) {
+	if (t.t_manta_path.includes('/buckets/')) {
 		var opts = {
 			md5: t.t_md5_local,
 			size: t.t_file.size,
