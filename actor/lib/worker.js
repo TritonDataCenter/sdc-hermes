@@ -427,6 +427,10 @@ pl_manta_info(t, next)
 function
 pl_manta_mkdirp(t, next)
 {
+	/* The logs bucket is another way to store a flat,
+	 * non-hierarchial collection of objects. It is assumed
+	 * to be pre-created and not recreated on every upload.
+	 */
 	if (t.t_cancel || !t.t_do_upload || t.t_manta_path.includes('/buckets/')) {
 		next();
 		return;
@@ -462,10 +466,32 @@ pl_manta_put(t, next)
 	mod_assert.number(t.t_file.size, 'file.size');
 	mod_assert.strictEqual(t.t_do_upload, true);
 
-	var opts = {
-		md5: t.t_md5_local,
-		size: t.t_file.size,
-	};
+	/*
+	 * HTTP Precondition prevents replacement of a file
+	 * if we're racing with another uploader. Buckets API
+	 * works with if-none-match but directory API doesn't
+	 * and needs to use if-match as a workaround.
+	 * Also skip client's encoding of buckets object path
+	 * to avoid double-encoding slashes in object name.
+	 */
+	if (t.t_manta_path.includes("/buckets/")) {
+		var opts = {
+			md5: t.t_md5_local,
+			size: t.t_file.size,
+			headers: {
+				'if-none-match': '*',
+				skipEncode: true
+			}
+		};
+	} else {
+		var opts = {
+			md5: t.t_md5_local,
+			size: t.t_file.size,
+			headers: {
+				'if-match': '""'
+			}
+		};
+	}
 
 	var finstr = mod_fs.createReadStream(t.t_file.real_path);
 	finstr.on('error', function (err) {
