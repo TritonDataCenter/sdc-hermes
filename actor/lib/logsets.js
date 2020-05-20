@@ -169,6 +169,10 @@ local_to_manta_path(manta_user, logset, logpath, datacenter, nodename, customer)
 
 	var out = '';
 	var state = null;
+	/* encode forward slashes in object name if
+	 * the path is a buckets URI
+	 */
+	var buckets_obj = logset.manta_path.includes('/buckets/');
 	for (var i = 0; i < logset.manta_path.length; i++) {
 		var c = logset.manta_path[i];
 		switch (state) {
@@ -255,6 +259,13 @@ local_to_manta_path(manta_user, logset, logpath, datacenter, nodename, customer)
 			case '$':
 			case '#':
 				state = c;
+				break;
+			case '/':
+				if (buckets_obj && out.includes('/objects/')) {
+					out += '%2F';
+				} else {
+					out += '/';
+				}
 				break;
 			default:
 				out += c;

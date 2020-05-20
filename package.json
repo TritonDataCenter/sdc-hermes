@@ -13,7 +13,7 @@
     "jsprim": "^1.4.0",
     "lstream": "^0.0.4",
     "mahi": "^2.2.4",
-    "manta": "^4.3.0",
+    "manta": "https://github.com/joyent/node-manta#0e64b227f77837a947d0aead003fae4a0bccce94",
     "once": "~1.2.0",
     "restify": "^4.3.0",
     "sdc-clients": "^10.2.0",
