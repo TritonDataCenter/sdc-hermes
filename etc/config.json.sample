@@ -14,7 +14,7 @@
     "url": "http://mahi.sf1.sf1.joyent.com"
   },
   "manta": {
-    "url": "https://us-east.manta.joyent.com",
+    "url": "https://us-central.manta.mnx.io",
     "user": "manta_username",
     "key_id": "xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx"
   },
