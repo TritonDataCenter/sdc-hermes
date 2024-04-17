@@ -22,10 +22,10 @@ ifeq ($(shell uname -s),SunOS)
 endif
 
 # Included definitions
-include ./tools/mk/Makefile.defs
-include ./tools/mk/Makefile.node_modules.defs
+include ./deps/eng/tools/mk/Makefile.defs
+include ./deps/eng/tools/mk/Makefile.node_modules.defs
 ifeq ($(shell uname -s),SunOS)
-    include ./tools/mk/Makefile.node_prebuilt.defs
+    include ./deps/eng/tools/mk/Makefile.node_prebuilt.defs
 else
     NPM=npm
     NODE=node
@@ -176,9 +176,9 @@ clean::
 	rm -rf $(PWD)/make_stamps/node-modules
 	rm -rf $(PWD)/proto
 
-include ./tools/mk/Makefile.deps
+include ./deps/eng/tools/mk/Makefile.deps
 ifeq ($(shell uname -s),SunOS)
-	include ./tools/mk/Makefile.node_prebuilt.targ
+	include ./deps/eng/tools/mk/Makefile.node_prebuilt.targ
 endif
-include ./tools/mk/Makefile.node_modules.targ
-include ./tools/mk/Makefile.targ
+include ./deps/eng/tools/mk/Makefile.node_modules.targ
+include ./deps/eng/tools/mk/Makefile.targ
