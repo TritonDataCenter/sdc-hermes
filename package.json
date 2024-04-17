@@ -1,6 +1,7 @@
 {
   "name": "hermes",
   "version": "0.5.3",
+  "version": "0.5.2",
   "description": "Centralised tool to upload Triton logs to Manta",
   "main": "hermes.js",
   "author": "MNX Cloud (mnx.io)",
