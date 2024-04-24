@@ -5,16 +5,26 @@
 #
 
 #
-# Copyright (c) 2018, Joyent, Inc.
+# Copyright 2019 Joyent, Inc.
 #
 
 #
 # Makefile.go_prebuilt.defs: Makefile for obtaining a prebuilt Go toolchain.
 #
-# NOTE: This makefile comes from the "eng" repo. It's designed to be dropped
-# into other repos as-is without requiring any modifications. If you find
-# yourself changing this file, you should instead update the original copy in
-# eng.git and then update your repo to use the new version.
+
+#
+# NOTE: This makefile comes from the "eng" repo. If you find yourself changing
+# this file, you should ensure that you test all consumers of it, since
+# eng.git is a git submodule of several repositories. After testing, push
+# changes to the eng.git repository as normal, then do the following for
+# each component that uses eng.git, likely reusing the original ticket subject
+# for the commit message as was used for the eng.git push.
+#
+#    $ git submodule update --remote deps/eng
+#    $ git add deps/eng
+#    $ git commit -m "TOOLS-xxxx some description" deps/eng
+#
+# Then create a PR as usual for review.
 #
 
 #
@@ -78,9 +88,9 @@ GO_GOOS ?=			solaris
 GO_GOARCH ?=			amd64
 
 #
-# The "tools/download_go" script will obtain a Go toolchain tar archive, which
-# we will store in the $(CACHE_DIR).  This directory is be removed entirely by
-# "make distclean".
+# The "deps/eng/tools/download_go" script will obtain a Go toolchain tar
+# archive, which we will store in the $(CACHE_DIR).  This directory is removed
+# entirely by "make distclean".
 #
 GO_TARBALL =			$(CACHE_DIR)/go-$(GO_PREBUILT_VERSION).tar.bz2
 
@@ -112,6 +122,7 @@ GO_ENV +=			GOPATH="$(TOP)/$(GO_GOPATH)"
 GO_ENV +=			GOARCH="$(GO_GOARCH)"
 GO_ENV +=			GOOS="$(GO_GOOS)"
 GO_ENV +=			PATH="$(TOP)/$(GO_INSTALL)/bin:$$PATH"
+GO_ENV +=			GOCACHE="$(shell realpath $(CACHE_DIR))/go_cache"
 
 #
 # The $(GO) variable should be used in place of bare invocations of "go".

@@ -5,24 +5,24 @@
 #
 
 #
-# Copyright (c) 2018, Joyent, Inc.
+# Copyright 2020 Joyent, Inc.
 #
 
 #
-# NOTE: This makefile comes from the "eng" repo. It's designed to be dropped
-# into other repos as-is without requiring any modifications. If you find
-# yourself changing this file, you should instead update the original copy in
-# eng.git and then update your repo to use the new version.
+# NOTE: This makefile comes from the "eng" repo. If you find yourself changing
+# this file, you should ensure that you test all consumers of it, since
+# eng.git is a git submodule of several repositories. After testing, push
+# changes to the eng.git repository as normal, then do the following for
+# each component that uses eng.git, likely reusing the original ticket subject
+# for the commit message as was used for the eng.git push.
 #
-# This Makefile uses the following definitions:
+#    $ git submodule update --remote deps/eng
+#    $ git add deps/eng
+#    $ git commit -m "TOOLS-xxxx some description" deps/eng
 #
-# 	CTFTOOLS	Directory in which to install ctftools once downloaded
-# 			extracted.
+# Then create a PR as usual for review.
 #
-# 	CTFCONVERT	Path for the ctfconvert utility which converts debug
-# 			information from a binary file to CTF data and replaces
-# 			the debug section of that file with a CTF section called
-# 			SUNW_ctf.
+
 #
 # See the rule for helloctf in the Makefile located at the root of this
 # repository for an example of how to use ctfconvert to include CTF information
@@ -40,10 +40,12 @@ $(error You must include Makefile.defs before this makefile.)
 endif
 
 CTFTOOLS := $(TOP)/$(CACHE_DIR)/ctftools
-CTFCONVERT := $(CTFTOOLS)/bin/ctfconvert
-CTFDIFF := $(CTFTOOLS)/bin/ctfdiff
-CTFDUMP := $(CTFTOOLS)/bin/ctfdump
-CTFMERGE := $(CTFTOOLS)/bin/ctfmerge
-CTFSTRIP := $(CTFTOOLS)/bin/ctfstrip
+CTFCONVERT := $(CTFTOOLS)/bin/i386/ctfconvert
+CTFDIFF := $(CTFTOOLS)/bin/i386/ctfdiff
+CTFDUMP := $(CTFTOOLS)/bin/i386/ctfdump
+CTFSTABS := $(CTFTOOLS)/bin/i386/ctfstabs
+CTFSTRIP := $(CTFTOOLS)/bin/i386/ctfstrip
 
+ifeq ($(shell uname -s),SunOS)
 STAMP_CTF_TOOLS :=	$(MAKE_STAMPS_DIR)/ctftools.stamp
+endif

@@ -5,16 +5,27 @@
 #
 
 #
-# Copyright (c) 2017, Joyent, Inc.
+# Copyright 2020 Joyent, Inc.
+# Copyright 2024 MNX Cloud, Inc.
 #
 
 #
 # Makefile.node_prebuilt.defs: Makefile for including a prebuilt Node.js build.
 #
-# NOTE: This makefile comes from the "eng" repo. It's designed to be dropped
-# into other repos as-is without requiring any modifications. If you find
-# yourself changing this file, you should instead update the original copy in
-# eng.git and then update your repo to use the new version.
+
+#
+# NOTE: This makefile comes from the "eng" repo. If you find yourself changing
+# this file, you should ensure that you test all consumers of it, since
+# eng.git is a git submodule of several repositories. After testing, push
+# changes to the eng.git repository as normal, then do the following for
+# each component that uses eng.git, likely reusing the original ticket subject
+# for the commit message as was used for the eng.git push.
+#
+#    $ git submodule update --remote deps/eng
+#    $ git add deps/eng
+#    $ git commit -m "TOOLS-xxxx some description" deps/eng
+#
+# Then create a PR as usual for review.
 #
 
 #
@@ -27,9 +38,10 @@
 # - Define `NODE_PREBUILT_VERSION` in your Makefile to choose a node version.
 #   E.g.: `NODE_PREBUILT_VERSION=v0.6.19`. See other optional variables
 #   below.
-# - `include tools/mk/Makefile.node_prebuilt.defs` after this in your Makefile.
-# - `include tools/mk/Makefile.node_prebuilt.targ` near the end of your
-#   Makefile.
+# - `include deps/eng/tools/mk/Makefile.node_prebuilt.defs` after this in
+#   your Makefile.
+# - `include deps/eng/tools/mk/Makefile.node_prebuilt.targ` near the end of
+#   your Makefile.
 # - Have at least one of your Makefile targets depend on either `$(NODE_EXEC)`
 #   or `$(NPM_EXEC)`. E.g.:
 #
@@ -58,7 +70,22 @@
 #				can either be a *local directory* or *a
 #				URL* dir (with trailing '/') which serves
 #				Apache/Nginx dir listing HTML.
-#				(default: sdcnode master build dir on stuff)
+#				(default: not set)
+#
+#	NODE_PREBUILT_MANTA_DIR
+#				Used in preference to NODE_PREBUILT_DIR,
+#				this is a http(s) URL to a Manta object,
+#				typically $(NODE_PREBUILT_BRANCH)-latest,
+#				which contains a Manta path to the build
+#				for that branch. The build expects that
+#				path to contain an 'sdcnode' subdirectory.
+#				Note that doing a curl on a Manta directory
+#				returns JSON results, with one object per
+#				line.
+#				(default: sdcnode master build dir on
+#				US-East manta for the given branch, built on
+#				the current min_platform, $(BUILD_PLATFORM))
+#
 #
 #	NODE_PREBUILT_TAG	The 'sdcnode' project supports special
 #				configuration builds of node, e.g. say a
@@ -77,7 +104,7 @@
 #				for an sdcnode build that you want to use (potential compat
 #				issues be damned), then set this to the UUID of the sdcnode
 #				build you want. See here for available build image uuids:
-#				<https://download.joyent.com/pub/build/sdcnode/master-latest/sdcnode/>
+#				<https://us-central.manta.mnx.io/Joyent_Dev/public/releng/sdcnode>
 #
 #	BUILD			top-level directory for built binaries
 #				(default: "build")
@@ -114,16 +141,26 @@ DISTCLEAN_FILES	+= $(NODE_INSTALL) \
 	$(BUILD)/prebuilt-node-* $(BUILD)/prebuilt-npm-*
 
 NODE_PREBUILT_BRANCH ?= master
-NODE_PREBUILT_IMAGE ?= $(shell pfexec mdata-get sdc:image_uuid)
+NODE_PREBUILT_IMAGE ?= $(shell $(PFEXEC) mdata-get sdc:image_uuid)
 ifeq ($(NODE_PREBUILT_TAG),)
 	NODE_PREBUILT_NAME := $(NODE_PREBUILT_VERSION)-$(NODE_PREBUILT_IMAGE)
 else
 	NODE_PREBUILT_NAME := $(NODE_PREBUILT_VERSION)-$(NODE_PREBUILT_TAG)-$(NODE_PREBUILT_IMAGE)
 endif
 NODE_PREBUILT_PATTERN := sdcnode-$(NODE_PREBUILT_NAME)-$(NODE_PREBUILT_BRANCH)-.*\.tgz
-NODE_PREBUILT_DIR ?= https://download.joyent.com/pub/build/sdcnode/$(NODE_PREBUILT_IMAGE)/$(NODE_PREBUILT_BRANCH)-latest/sdcnode/
-ifeq ($(shell echo $(NODE_PREBUILT_DIR) | cut -c 1-4),http)
-	NODE_PREBUILT_BASE := $(shell curl -ksS --fail --connect-timeout 30 $(NODE_PREBUILT_DIR) | grep 'href=' | cut -d'"' -f2 | grep "^$(NODE_PREBUILT_PATTERN)$$" | sort | tail -1)
+NODE_PREBUILT_MANTA_URL ?= https://us-central.manta.mnx.io
+NODE_PREBUILT_MANTA_DIR ?= /Joyent_Dev/public/releng/sdcnode/$(BUILD_PLATFORM)/$(NODE_PREBUILT_IMAGE)/$(NODE_PREBUILT_BRANCH)-latest
+
+# only use NODE_PREBUILT_DIR if it is set.
+ifeq ($(NODE_PREBUILT_DIR),)
+	NODE_PREBUILT_MANTA_REAL_DIR := $(shell $(CURL) -sS --fail --connect-timeout 30 $(NODE_PREBUILT_MANTA_URL)$(NODE_PREBUILT_MANTA_DIR))
+	NODE_PREBUILT_BASE := $(shell $(CURL) -sS --fail --connect-timeout 30 $(NODE_PREBUILT_MANTA_URL)$(NODE_PREBUILT_MANTA_REAL_DIR)/sdcnode | json -ag name | grep "^$(NODE_PREBUILT_PATTERN)$$" | sort | tail -1)
+	ifneq ($(NODE_PREBUILT_BASE),)
+		NODE_PREBUILT_TARBALL := $(NODE_PREBUILT_MANTA_URL)$(NODE_PREBUILT_MANTA_REAL_DIR)/sdcnode/$(NODE_PREBUILT_BASE)
+	endif
+else ifeq ($(shell echo $(NODE_PREBUILT_DIR) | cut -c 1-4),http)
+	# assume Apache/Nginx style indexing
+	NODE_PREBUILT_BASE := $(shell $(CURL) -sS --fail --connect-timeout 30 $(NODE_PREBUILT_DIR) | grep 'href=' | cut -d'"' -f2 | grep "^$(NODE_PREBUILT_PATTERN)$$" | sort | tail -1)
 	ifneq ($(NODE_PREBUILT_BASE),)
 		NODE_PREBUILT_TARBALL := $(NODE_PREBUILT_DIR)$(NODE_PREBUILT_BASE)
 	endif
