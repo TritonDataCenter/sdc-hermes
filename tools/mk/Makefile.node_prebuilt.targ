@@ -1,4 +1,3 @@
-# -*- mode: makefile -*-
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -6,20 +5,31 @@
 #
 
 #
-# Copyright (c) 2014, Joyent, Inc.
+# Copyright (c) 2019, Joyent, Inc.
 #
 
 #
 # Makefile.node_prebuilt.targ: Makefile for including a prebuilt Node.js
 # build.
 #
-# NOTE: This makefile comes from the "eng" repo. It's designed to be dropped
-# into other repos as-is without requiring any modifications. If you find
-# yourself changing this file, you should instead update the original copy in
-# eng.git and then update your repo to use the new version.
 
+#
+# NOTE: This makefile comes from the "eng" repo. If you find yourself changing
+# this file, you should ensure that you test all consumers of it, since
+# eng.git is a git submodule of several repositories. After testing, push
+# changes to the eng.git repository as normal, then do the following for
+# each component that uses eng.git, likely reusing the original ticket subject
+# for the commit message as was used for the eng.git push.
+#
+#    $ git submodule update --remote deps/eng
+#    $ git add deps/eng
+#    $ git commit -m "TOOLS-xxxx some description" deps/eng
+#
+# Then create a PR as usual for review.
+#
 
 NODE_PREBUILT_TARBALL ?= $(error NODE_PREBUILT_TARBALL is not set: was Makefile.node_prebuilt.defs included?)
+CURL ?= $(error CURL is not set: was Makefile.defs included?)
 
 
 # TODO: remove this limitation
@@ -33,7 +43,7 @@ $(NODE_EXEC) $(NPM_EXEC) $(NODE_WAF_EXEC):
 	mkdir -p $(shell dirname $(NODE_INSTALL))
 	if [[ $(shell echo $(NODE_PREBUILT_TARBALL) | cut -c 1-4) == "http" ]]; then \
 		echo "Downloading '$(NODE_PREBUILT_BASE)'."; \
-		curl -ksS --fail --connect-timeout 30 -o $(shell dirname $(NODE_INSTALL))/$(NODE_PREBUILT_BASE) $(NODE_PREBUILT_TARBALL); \
+		$(CURL) -sS --fail --connect-timeout 30 -o $(shell dirname $(NODE_INSTALL))/$(NODE_PREBUILT_BASE) $(NODE_PREBUILT_TARBALL); \
 		(cd $(shell dirname $(NODE_INSTALL)) && $(TAR) xf $(NODE_PREBUILT_BASE)); \
 	else \
 		(cd $(shell dirname $(NODE_INSTALL)) && $(TAR) xf $(NODE_PREBUILT_TARBALL)); \
